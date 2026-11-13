@@ -1,0 +1,16 @@
+# Dependencies and build output
+node_modules/
+.build/
+*.tgz
+
+# Local runtime state
+state/
+molecular-exports/
+*.log
+
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

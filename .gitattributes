@@ -1,0 +1,7 @@
+# Normalize line endings: the plugin is developed on Windows but consumed on
+# every platform, and a mixed CRLF/LF tree makes diffs noisy.
+* text=auto eol=lf
+
+# The built bundle is machine-generated; keep it out of diff review.
+client.js -diff linguist-generated
+*.png binary

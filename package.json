@@ -1,0 +1,76 @@
+{
+  "name": "@local/molecular-workspace2",
+  "version": "0.3.1",
+  "private": true,
+  "description": "Native Molecular Workspace: Mol* 3D structure viewer integrated into the DSH right sidebar, with a shared Molecular Context Service for UI actions and Agent tools.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Protonhydrogen/dsh-mol-workspace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Protonhydrogen/dsh-mol-workspace/issues"
+  },
+  "homepage": "https://github.com/Protonhydrogen/dsh-mol-workspace#readme",
+  "license": "MIT",
+  "author": "Protonhydrogen",
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "molstar",
+    "molecular-visualization",
+    "structural-biology",
+    "pdb",
+    "mmcif",
+    "protein-viewer"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "icon": "./icon.svg",
+  "files": [
+    "index.js",
+    "client.js",
+    "src",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --no-warnings --experimental-loader ./tests/resolve-loader.mjs --test tests/state.test.mjs tests/engine.test.mjs tests/geometry.test.mjs tests/host.test.mjs tests/references.test.mjs tests/interactions.test.mjs tests/focus-representation.test.mjs tests/schema.test.mjs tests/display.test.mjs tests/video-codecs.test.mjs tests/view-settings.test.mjs tests/viewer-wake.test.mjs",
+    "test:live": "node --no-warnings --experimental-loader ./tests/resolve-loader.mjs --test tests/live.test.mjs tests/live-new.test.mjs tests/live-v030.test.mjs"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-ui-input-trigger",
+        "@deepseek-ai/dsh-client-ui-conversation"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.0.4",
+    "@deepseek-ai/dsh-tools": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-typert-protocol": "^0.2.1-rc.2",
+    "@deepseek-ai/dsh-llm": "^0.2.1-rc.2"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "molstar": "^5.13.1"
+  }
+}

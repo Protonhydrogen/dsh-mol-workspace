@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
+const base=`http://127.0.0.1:${process.env.DSH_MOL_PORT||43130}/api/`;
+async function api(method,...args){const r=await(await fetch(base+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)})).json();if(!r.ok)throw new Error(r.error.message);return r.value;}
+async function command(action,args={}){const c=await api('enqueueCommand',{action,args});for(let i=0;i<200;i++){await new Promise(r=>setTimeout(r,150));const result=await api('getCommand',c.id);if(result.status==='succeeded')return result.result;if(!['pending','running'].includes(result.status))throw new Error(action+': '+result.error?.message);}throw new Error(action+' was never acknowledged');}
+test('new focus, reversible hiding, preview and ranged trajectory use the real renderer',async t=>{
+ const ref=await api('load','fixtures/1qys.cif');
+ await command('getStructureInfo',{structureId:ref.structureId});
+ await t.test('focus and interaction inspection use atomic chemical contacts',async()=>{const args={structureId:ref.structureId,chainId:'A',start:19};await command('focus',args);const result=await command('getInteractions',args);assert.ok(result.contactCount>0);assert.ok(result.contacts.every(c=>c.a.atoms.length&&c.b.atoms.length));});
+ await t.test('remove selected residues is reversible and preserves source bytes',async()=>{const before=await api('getState'),raw=await api('getStructureData',ref.structureId);await command('hideSelection',{structureId:ref.structureId,chainId:'A',start:19});assert.equal((await api('getState')).hiddenSelections.length,(before.hiddenSelections??[]).length+1);await command('undo');assert.deepEqual((await api('getState')).hiddenSelections,before.hiddenSelections??[]);assert.equal((await api('getStructureData',ref.structureId)).data,raw.data);});
+ await t.test('image preview is a real PNG',async()=>{const p=await command('previewImage',{width:640,height:360,format:'png'});assert.ok(p.dataUrl.startsWith('data:image/png;base64,'));const b=Buffer.from(p.dataUrl.split(',')[1],'base64');assert.equal(b.readUInt32BE(16),640);assert.equal(b.readUInt32BE(20),360);});
+ await t.test('range video exports requested frames and restores original frame',async()=>{const state=await api('getState'),tr=state.structures.find(s=>s.title==='two-frame.pdb');assert.ok(tr);await command('trajectory',{structureId:tr.structureId,mode:'frame',frame:1});const r=await command('trajectory',{structureId:tr.structureId,mode:'video',startFrame:0,endFrame:1,fps:5,width:1280,height:720});assert.equal(r.frameCount,2);assert.equal(r.width,1280);assert.equal((await readFile(r.path)).toString('hex',0,4),'1a45dfa3');assert.equal((await api('getState')).trajectory.frame,1);});
+});

@@ -1,0 +1,4 @@
+- insert:
+    - id: molecular-workspace2
+      name: '@local/molecular-workspace2'
+      config: {}
