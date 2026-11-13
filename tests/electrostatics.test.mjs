@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { ThemeRegistry } from 'molstar/lib/mol-theme/theme';
+import { ColorTheme } from 'molstar/lib/mol-theme/color';
 import {
   debyeLength,
   potentialColor,
@@ -143,17 +145,31 @@ test('statistics report the real spread, including symmetric cases', () => {
   assert.equal(potentialStats(new Float32Array(0)), null);
 });
 
-test('the theme registers once and is idempotent', () => {
-  const store = new Map();
-  const plugin = {
-    representation: { structure: { themes: { colorThemeRegistry: { get: (n) => store.get(n), add: (p) => store.set(p.name, p) } } } },
-  };
+test('the theme registers into a real Molstar theme registry, once', () => {
+  const registry = new ThemeRegistry({}, undefined);
+  const plugin = { representation: { structure: { themes: { colorThemeRegistry: registry } } } };
+
   assert.equal(registerElectrostaticTheme(plugin), true);
+  const registered = registry.get('electrostatic');
+  assert.equal(registered.name, 'electrostatic');
+  // The category must be one Mol* actually declares.
+  assert.equal(registered.category, ColorTheme.Category.Atom);
+
+  // Registering twice must not throw "already registered".
   assert.equal(registerElectrostaticTheme(plugin), true);
-  assert.equal(store.size, 1);
-  assert.equal(store.get('electrostatic').name, 'electrostatic');
+  assert.equal(registry.list.length, 1);
+
   // A plugin without a theme registry must not throw during startup.
   assert.equal(registerElectrostaticTheme({}), false);
+});
+
+test('the provider builds a usable atom-granularity theme', () => {
+  const theme = ElectrostaticThemeProvider.factory({ structure: undefined, isGhost: false }, {});
+  assert.equal(theme.granularity, 'atom');
+  assert.equal(typeof theme.color, 'function');
+  // With no potential table the theme must return a colour, not throw.
+  const fallback = theme.color({ unit: { model: {}, elements: Int32Array.from([0]) }, element: 0 });
+  assert.equal(typeof fallback, 'number');
 });
 
 test('the theme colours an atom from the potential table of its model', () => {
