@@ -1,5 +1,5 @@
 {
-  "name": "@local/molecular-workspace2",
+  "name": "dsh-mol-workspace",
   "version": "0.3.1",
   "private": true,
   "description": "Native Molecular Workspace: Mol* 3D structure viewer integrated into the DSH right sidebar, with a shared Molecular Context Service for UI actions and Agent tools.",

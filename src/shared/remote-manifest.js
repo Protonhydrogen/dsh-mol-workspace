@@ -14,5 +14,5 @@ export const REMOTE_METHODS = {
   followState:[['sessionId','string']],
 };
 export function remoteDescriptors(codec){
-  return Object.entries(REMOTE_METHODS).map(([method,params])=>({id:`@local/molecular-workspace2#molecular/${method}`,service:'molecular',namespace:'molecular',method,invocation:{kind:'direct'},...(method==='followState'?{mode:'stream',cancellation:{parameter:'signal'}}:method==='load'||method==='getStructureData'?{cancellation:{parameter:'signal'}}:{}),parameters:params.map(([name,type])=>({name,wire:name,source:'json',codec:codec(type)})),result:codec('json')}));
+  return Object.entries(REMOTE_METHODS).map(([method,params])=>({id:`dsh-mol-workspace#molecular/${method}`,service:'molecular',namespace:'molecular',method,invocation:{kind:'direct'},...(method==='followState'?{mode:'stream',cancellation:{parameter:'signal'}}:method==='load'||method==='getStructureData'?{cancellation:{parameter:'signal'}}:{}),parameters:params.map(([name,type])=>({name,wire:name,source:'json',codec:codec(type)})),result:codec('json')}));
 }

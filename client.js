@@ -1,4 +1,4 @@
-window.__ModuleLoader__.load({id:'@local/molecular-workspace2',factory(require){var module={exports:{}};var exports=module.exports;
+window.__ModuleLoader__.load({id:'dsh-mol-workspace',factory(require){var module={exports:{}};var exports=module.exports;
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -172911,12 +172911,12 @@ var REMOTE_METHODS = {
   followState: [["sessionId", "string"]]
 };
 function remoteDescriptors(codec2) {
-  return Object.entries(REMOTE_METHODS).map(([method, params]) => ({ id: `@local/molecular-workspace2#molecular/${method}`, service: "molecular", namespace: "molecular", method, invocation: { kind: "direct" }, ...method === "followState" ? { mode: "stream", cancellation: { parameter: "signal" } } : method === "load" || method === "getStructureData" ? { cancellation: { parameter: "signal" } } : {}, parameters: params.map(([name, type3]) => ({ name, wire: name, source: "json", codec: codec2(type3) })), result: codec2("json") }));
+  return Object.entries(REMOTE_METHODS).map(([method, params]) => ({ id: `dsh-mol-workspace#molecular/${method}`, service: "molecular", namespace: "molecular", method, invocation: { kind: "direct" }, ...method === "followState" ? { mode: "stream", cancellation: { parameter: "signal" } } : method === "load" || method === "getStructureData" ? { cancellation: { parameter: "signal" } } : {}, parameters: params.map(([name, type3]) => ({ name, wire: name, source: "json", codec: codec2(type3) })), result: codec2("json") }));
 }
 
 // src/client/index.js
 var NS = "molecularWorkspace";
-var ID = "@local/molecular-workspace2";
+var ID = "dsh-mol-workspace";
 var inject = ["slots", "locale", "sidebarRightTabs", "sidebarRight", "remote", "theme", "inputTriggers", "sessions", "conversation"];
 var unwrap = (r) => {
   if (r?.ok === true) return r.value;

@@ -5,7 +5,7 @@ import { molecularReferenceSource } from './references.js';
 import { Workspace } from '../viewer/workspace.js';
 import { styles } from '../viewer/styles.js';
 import { remoteDescriptors, REMOTE_METHODS } from '../shared/remote-manifest.js';
-const NS='molecularWorkspace',ID='@local/molecular-workspace2';
+const NS='molecularWorkspace',ID='dsh-mol-workspace';
 export const inject=['slots','locale','sidebarRightTabs','sidebarRight','remote','theme','inputTriggers','sessions','conversation'];
 const unwrap=r=>{if(r?.ok===true)return r.value;throw new Error(r?.error?.message??String(r?.error??'Molecular remote call failed'));};
 const codec=type=>({mode:'strict',typeSymbol:type==='string'?'string':'unknown',create:()=>({parse:v=>v})});
