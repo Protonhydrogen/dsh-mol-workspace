@@ -3,6 +3,19 @@
 Notable changes to this plugin. The project is pre-1.0: minor versions may
 change behaviour, and the Agent tool surface is the most likely thing to move.
 
+## 0.4.0
+
+- Solvent-accessible surface: a Gaussian surface grown by the probe radius,
+  selectable as its own representation, with probe radius and smoothness in the
+  UI. The molecular (solvent-excluded) surface stays available alongside it.
+- Electrostatic colour theme: screened Coulomb potential at atom centres, drawn
+  blue for positive and red for negative. Charges come from a PDBQT file when
+  the structure carries them; otherwise a built-in residue model is used.
+- Electrostatics parameters: dielectric constant, ionic strength (Debye
+  screening), and the potential range that maps to full colour saturation.
+- Local patches: a selection layer can carry its own solvent surface or
+  electrostatic colouring without touching the rest of the structure.
+
 ## 0.3.1
 
 - Custom `kt-ms2` colour theme: paints only lysine residues carrying a K-T MS2

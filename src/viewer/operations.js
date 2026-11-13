@@ -12,13 +12,43 @@ import { chainsOf } from './targets.js';
 import { measurementGeometry } from './measurements.js';
 import { exportImage, exportStructure, trajectory, alignStructures, exportVideo } from './output.js';
 
+/** Surface and electrostatics options that a layer must carry into its record. */
+const LAYER_SURFACE_KEYS = ['representations','probeRadius','smoothness','dielectric','ionicStrength','potentialRange','sizeFactor','quality'];
+
+/**
+ * Build a layer record from createLayer arguments. Exported so the option
+ * plumbing can be tested without a live Mol* plugin: these fields were once
+ * dropped here, which silently disabled per-layer surfaces and potentials.
+ */
+export function buildLayerRecord(a,selection,makeId){
+  const surface={};
+  for(const k of LAYER_SURFACE_KEYS)if(a[k]!=null)surface[k]=a[k];
+  return {
+    id:a.id??makeId(),
+    name:String(a.name??'Selection layer'),
+    selection,
+    color:a.colorValue??(typeof a.color==='string'&&a.color.startsWith('#')?a.color:'#8b5cf6'),
+    visible:true,
+    display:{representation:a.representation??'ball-and-stick',opacity:a.opacity??1,color:a.color&&!a.color.startsWith('#')?a.color:'uniform',...surface},
+  };
+}
+
 export async function createLayer(e,record){
   const selection=e.resolveTarget({selection:record.selection,structureId:record.selection.structureId},e.stateCache);
   const loci=e.lociFor(selection);const ref=e.structureRefs.get(selection.structureId);
   const c=await e.plugin.builders.structure.tryCreateComponent(ref,{type:{name:'bundle',params:StructureElement.Bundle.fromLoci(loci)},nullIfEmpty:true,label:record.name},record.id);
   if(!c)throw failure('TARGET_NOT_FOUND','Layer selection is empty');
   const style=record.display??{};const color=record.color??style.colorValue??'#8b5cf6';checkColor(color);
-  for(const type of style.representations??[presetRepresentation(style.representation??'ball-and-stick')])await e.plugin.builders.structure.representation.addRepresentation(c,{type,typeParams:representationParams(style),color:style.color??'uniform',colorParams:representationColorParams({...style,colorValue:color})});
+  // Reject out-of-range surface / electrostatics values here rather than letting
+  // them reach Mol* as NaNs.
+  if(style.probeRadius!=null||style.dielectric!=null||style.ionicStrength!=null||style.potentialRange!=null)validateDisplay(style);
+  // A layer is how a *local* patch gets its own surface: the selection subset
+  // becomes its own component, so the electrostatic table must be ready first.
+  if(style.color==='electrostatic')e.ensurePotential(selection.structureId,style);
+  for(const rawType of style.representations??[presetRepresentation(style.representation??'ball-and-stick')]){
+    const type=presetRepresentation(rawType);
+    await e.plugin.builders.structure.representation.addRepresentation(c,{type,typeParams:representationParams(style,{},type),color:style.color??'uniform',colorParams:representationColorParams({...style,colorValue:color})});
+  }
   setSubtreeVisibility(e.plugin.state.data,c.ref,record.visible===false);
   e.layerItems.set(record.id,{ref:c.ref,record:clone(record),signature:JSON.stringify(record)});
   return record;
@@ -127,7 +157,11 @@ export async function executeOperation(e,command,state){
     return {value:{structureId:sid,visible:display.visible},patch:{structureUpdates:[{structureId:sid,display}]}};
   }
   if(action==='createTag'||action==='createLayer'){
-    const selection=e.resolveTarget(a,state);const record={id:a.id??id(action==='createTag'?'tag':'layer'),name:String(a.name??(action==='createTag'?'Tag':'Selection layer')),selection,color:a.colorValue??(typeof a.color==='string'&&a.color.startsWith('#')?a.color:'#8b5cf6'),visible:true,display:{representation:a.representation??'ball-and-stick',opacity:a.opacity??1,color:a.color&&!a.color.startsWith('#')?a.color:'uniform'}};
+    const selection=e.resolveTarget(a,state);
+    // Surface and electrostatics options must survive into the layer record, or a
+    // layer could never carry its own solvent surface or potential colouring.
+    const record=buildLayerRecord(a,selection,()=>id(action==='createTag'?'tag':'layer'));
+    record.name=String(a.name??(action==='createTag'?'Tag':'Selection layer'));
     if(!record.name.trim())throw failure('INVALID_ARGUMENT','A name is required');checkColor(record.color);
     const key=action==='createTag'?'tags':'layers';if(state[key].some(l=>l.id===record.id))throw failure('INVALID_ARGUMENT','Object ID already exists');
     await createLayer(e,record);return {value:record,patch:{[key]:[...state[key],record]}};

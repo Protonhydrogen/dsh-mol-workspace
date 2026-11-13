@@ -37,4 +37,22 @@ getInteractions 返回化学/几何规则推断的接触类型、真实原子端
 
 setDisplay 支持 structureId 或 layerId、representation、color、opacity、colorValue 等。trajectory 支持 frame/step/play/pause/video；视频区间 startFrame/endFrame 为零起始，含两端。使用 wait=false 返回命令 ID，再轮询，成功后检查实际输出路径。
 
+### 表面与静电
+
+- `representation: 'solvent-accessible'` 渲染溶剂可及表面（按探针半径外扩的高斯表面），配合 `probeRadius`（默认 1.4 Å）与 `smoothness`。`molecular-surface` 仍是溶剂排除表面。
+- `color: 'electrostatic'` 用屏蔽库仑势着色，正蓝负红。可配 `dielectric`（默认 80）、`ionicStrength`（默认 0.15 M）、`potentialRange`（默认 15 kcal/mol/e，即满色阶对应的值）。
+- 电荷优先取自 PDBQT 的 Gasteiger 电荷；普通 PDB/mmCIF 没有电荷，退回内置残基模型（骨架 Amber 电荷、带电侧链形式电荷），只保证正负区域位置正确。
+- 电势是原子中心处的值，表面网格继承最近原子的颜色，不是表面本身求解出的电势；不是 Poisson–Boltzmann 解，也不是结合能。
+- 局部版本用图层实现，不影响结构其余部分：
+
+```json
+{"action":"createLayer","args":"{\"structureId\":\"1\",\"chainId\":\"A\",\"start\":41,\"end\":60,\"representation\":\"solvent-accessible\",\"color\":\"electrostatic\",\"probeRadius\":1.4,\"dielectric\":80}"}
+```
+
+整结构版本：
+
+```json
+{"action":"setDisplay","args":"{\"structureId\":\"1\",\"representations\":[\"cartoon\",\"solvent-accessible\"],\"color\":\"electrostatic\",\"opacity\":0.9}"}
+```
+
 输入框引用通过原生 inputTriggers + conversation.input 插入，发送前保持草稿；独立 Agent.inject 不用于“加入对话”，因为它只把内容放入 next-step inbox。

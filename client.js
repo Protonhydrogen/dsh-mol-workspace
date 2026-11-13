@@ -77,15 +77,18 @@ function validateDisplay(input) {
   if (input.colorValue) checkColor(input.colorValue);
   if (input.opacity != null && (!Number.isFinite(input.opacity) || input.opacity < 0 || input.opacity > 1)) throw failure("INVALID_ARGUMENT", "Opacity must be between 0 and 1");
   for (const [key2, max5] of [["sizeFactor", 10], ["emissive", 1], ["metalness", 1], ["roughness", 1], ["bumpiness", 1], ["bumpFrequency", 10], ["bumpAmplitude", 5]]) if (input[key2] != null && (!Number.isFinite(input[key2]) || input[key2] < 0 || input[key2] > max5)) throw failure("INVALID_ARGUMENT", `${key2} must be 0\u2013${max5}`);
+  for (const [key2, max5, min5] of [["probeRadius", 10, 0], ["smoothness", 5, 0.1], ["ionicStrength", 5, 0], ["potentialRange", 500, 1]]) if (input[key2] != null && (!Number.isFinite(input[key2]) || input[key2] < min5 || input[key2] > max5)) throw failure("INVALID_ARGUMENT", `${key2} must be ${min5}\u2013${max5}`);
+  if (input.dielectric != null && (!Number.isFinite(input.dielectric) || input.dielectric < 1 || input.dielectric > 300)) throw failure("INVALID_ARGUMENT", "dielectric must be 1\u2013300");
+  if (input.surfaceType != null && !["solvent-accessible", "solvent-excluded", "gaussian"].includes(input.surfaceType)) throw failure("INVALID_ARGUMENT", "surfaceType must be solvent-accessible, solvent-excluded, or gaussian");
   return clone(input);
 }
 var MEASUREMENTS, REPRESENTATION_OPTIONS, REPRESENTATIONS, COLORS;
 var init_model = __esm({
   "src/shared/model.js"() {
     MEASUREMENTS = ["distance", "angle", "dihedral", "label", "orientation", "plane"];
-    REPRESENTATION_OPTIONS = [["cartoon", "Cartoon"], ["ball-and-stick", "Ball-and-Stick"], ["molecular-surface", "Molecular Surface"], ["gaussian-surface", "Gaussian Surface"], ["spacefill", "Spacefill"], ["point", "Point"], ["line", "Line"], ["backbone", "Backbone"], ["putty", "Putty"], ["carbohydrate", "Carbohydrate"]];
+    REPRESENTATION_OPTIONS = [["cartoon", "Cartoon"], ["ball-and-stick", "Ball-and-Stick"], ["molecular-surface", "Molecular Surface"], ["gaussian-surface", "Gaussian Surface"], ["solvent-accessible", "Solvent-Accessible Surface"], ["spacefill", "Spacefill"], ["point", "Point"], ["line", "Line"], ["backbone", "Backbone"], ["putty", "Putty"], ["carbohydrate", "Carbohydrate"]];
     REPRESENTATIONS = ["auto", "polymer-cartoon", "atomic-detail", "polymer-and-ligand", "illustrative", ...REPRESENTATION_OPTIONS.map(([name]) => name)];
-    COLORS = ["chain-id", "element-symbol", "residue-name", "secondary-structure", "uniform", "kt-ms2"];
+    COLORS = ["chain-id", "element-symbol", "residue-name", "secondary-structure", "uniform", "kt-ms2", "electrostatic"];
   }
 });
 
@@ -131913,24 +131916,57 @@ var MARKING_PROPS = {
 };
 
 // src/viewer/representation-style.js
-var presetRepresentation = (name) => ({ "auto": "cartoon", "polymer-cartoon": "cartoon", "atomic-detail": "ball-and-stick", "polymer-and-ligand": "ball-and-stick", "illustrative": "spacefill" })[name] ?? name ?? "cartoon";
+var presetRepresentation = (name) => ({
+  auto: "cartoon",
+  "polymer-cartoon": "cartoon",
+  "atomic-detail": "ball-and-stick",
+  "polymer-and-ligand": "ball-and-stick",
+  illustrative: "spacefill",
+  "solvent-accessible": "gaussian-surface"
+})[name] ?? name ?? "cartoon";
+var DEFAULT_PROBE_RADIUS = 1.4;
 function selectedRepresentations(display) {
-  return display.representations ?? [presetRepresentation(display.representation)];
+  return (display.representations ?? [presetRepresentation(display.representation)]).map(presetRepresentation);
 }
 function representationColorParams(display) {
   if (display.color === "chain-id") return CHAIN_COLOR_PARAMS;
   if (display.color === "element-symbol") return carbonColor(NEUTRAL_CARBON);
+  if (display.color === "electrostatic") return {};
   return display.colorValue ? { value: Number.parseInt(display.colorValue.slice(1), 16) } : {};
 }
-function representationParams(display, previous = {}) {
+function representationParams(display, previous = {}, type3) {
   const params = {
     ...previous,
     alpha: display.opacity ?? 1,
     quality: display.quality ?? "auto",
     emissive: display.emissive ?? 0,
-    material: { ...previous.material, metalness: display.metalness ?? 0, roughness: display.roughness ?? 0.4, bumpiness: display.bumpiness ?? 0 }
+    material: {
+      ...previous.material,
+      metalness: display.metalness ?? 0,
+      roughness: display.roughness ?? 0.4,
+      bumpiness: display.bumpiness ?? 0
+    }
   };
-  for (const key2 of ["sizeFactor", "flatShaded", "bumpFrequency", "bumpAmplitude", "ignoreHydrogens", "tubularHelices", "aspectRatio", "arrowFactor"]) if (display[key2] != null) params[key2] = display[key2];
+  for (const key2 of [
+    "sizeFactor",
+    "flatShaded",
+    "bumpFrequency",
+    "bumpAmplitude",
+    "ignoreHydrogens",
+    "tubularHelices",
+    "aspectRatio",
+    "arrowFactor"
+  ]) {
+    if (display[key2] != null) params[key2] = display[key2];
+  }
+  if (type3 === "gaussian-surface") {
+    if (display.probeRadius != null) params.radiusOffset = display.probeRadius;
+    else if (display.representation === "solvent-accessible") params.radiusOffset = DEFAULT_PROBE_RADIUS;
+    if (display.smoothness != null) params.smoothness = display.smoothness;
+  } else if (type3 === "molecular-surface") {
+    if (display.probeRadius != null) params.sizeFactor = display.sizeFactor ?? 1;
+    if (display.smoothness != null) params.bumpFrequency = display.smoothness;
+  }
   return params;
 }
 
@@ -131959,7 +131995,7 @@ function StyleControls({ display, onChange, onResetLayer, layerName, disabled })
   const [templates, setTemplates] = React2.useState(false), name = display.stylePreset ?? "Default", template = STYLE_PRESETS[display.styleTemplate] ? display.styleTemplate : STYLE_PRESETS[name] ? name : "Default";
   const change = (patch) => onChange({ ...patch, stylePreset: "Custom", styleTemplate: template });
   const checkbox = (label2, key2, value = false) => h("label", { className: "mw-row" }, h("span", { className: "grow" }, label2), h("input", { type: "checkbox", "aria-label": label2, checked: display[key2] ?? value, onChange: (e) => change({ [key2]: e.target.checked }) }));
-  const range2 = (label2, key2, fallback, max5 = 1) => h(Range, { label: label2, value: display[key2] ?? fallback, max: max5, onChange: (value) => change({ [key2]: value }) });
+  const range2 = (label2, key2, fallback, max5 = 1, min5 = 0, step = 0.01) => h(Range, { label: label2, value: display[key2] ?? fallback, min: min5, max: max5, step, onChange: (value) => change({ [key2]: value }) });
   return h(
     "fieldset",
     { className: "mw-style-controls", disabled },
@@ -131971,6 +132007,8 @@ function StyleControls({ display, onChange, onResetLayer, layerName, disabled })
     h("div", { className: "mw-repr-pills" }, REPRESENTATION_OPTIONS.map(([value, label2]) => h("button", { key: value, className: selectedRepresentations(display).includes(value) ? "active" : "", onClick: () => change({ representation: value }) }, label2))),
     h(Group, { name: "DISPLAY", open: true }, h("label", { className: "mw-row" }, h("span", null, "Color theme"), h("select", { "aria-label": "Color theme", value: display.color ?? "chain-id", onChange: (e) => change({ color: e.target.value }) }, COLORS.map((c8) => h("option", { value: c8, key: c8 }, c8)))), h("label", { className: "mw-row" }, h("span", null, "Uniform color"), h("input", { type: "color", "aria-label": "Uniform color", value: display.colorValue ?? "#a78bfa", onChange: (e) => change({ color: "uniform", colorValue: e.target.value }) })), h("label", { className: "mw-row" }, h("span", null, "Quality"), h("select", { "aria-label": "Rendering quality", value: display.quality ?? "auto", onChange: (e) => change({ quality: e.target.value }) }, ["auto", "lowest", "low", "medium", "high", "higher", "highest", "custom"].map((q) => h("option", { value: q, key: q }, q)))), range2("Alpha", "opacity", 1), range2("Emissive", "emissive", 0)),
     h(Group, { name: "GEOMETRY" }, range2("Size factor", "sizeFactor", 0.2, 2)),
+    h(Group, { name: "SURFACE" }, h("p", { className: "mw-help" }, "Pick Solvent-Accessible Surface above. The probe radius grows a Gaussian surface by the solvent radius, so 1.4 \xC5 is water. Solvent-excluded is the same surface without the probe."), range2("Probe radius (\xC5)", "probeRadius", 1.4, 3, 0, 0.1), range2("Smoothness", "smoothness", 1, 5, 0.1, 0.05)),
+    h(Group, { name: "ELECTROSTATICS" }, h("p", { className: "mw-help" }, "Pick the electrostatic colour theme above. Charges come from a PDBQT file when present; otherwise a qualitative residue model is used. Values are screened Coulomb potentials at atom centres, in kcal/mol/e \u2014 not a Poisson\u2013Boltzmann solution."), range2("Dielectric", "dielectric", 80, 120, 1, 0.5), range2("Ionic strength (M)", "ionicStrength", 0.15, 2, 0, 0.01), range2("Potential range", "potentialRange", 15, 60, 1, 0.5)),
     h(Group, { name: "SHADING" }, checkbox("Flat shaded", "flatShaded"), range2("Texture frequency", "bumpFrequency", 0, 10), range2("Texture amplitude", "bumpAmplitude", 1, 5)),
     h(Group, { name: "MATERIAL" }, range2("Metalness", "metalness", 0), range2("Roughness", "roughness", 0.4), range2("Bumpiness", "bumpiness", 0)),
     h(Group, { name: "ATOMS" }, checkbox("Ignore hydrogens", "ignoreHydrogens")),
@@ -167202,8 +167240,8 @@ function computeRampControlPoints(grid) {
   const xStart = toX(mean);
   const xMid = toX(mean + sigma);
   const xEnd = toX(Math.min(mean + 3 * sigma, p99));
-  const ramp2 = buildRampPoints(xStart, xMid, xEnd, PeakAlpha);
-  return ramp2;
+  const ramp3 = buildRampPoints(xStart, xMid, xEnd, PeakAlpha);
+  return ramp3;
 }
 function buildRampPoints(xStart, xMid, xEnd, maxAlpha) {
   const eps = 2e-3;
@@ -171637,6 +171675,19 @@ function measurementGeometry(type3, points3) {
 }
 
 // src/viewer/operations.js
+var LAYER_SURFACE_KEYS = ["representations", "probeRadius", "smoothness", "dielectric", "ionicStrength", "potentialRange", "sizeFactor", "quality"];
+function buildLayerRecord(a8, selection, makeId) {
+  const surface = {};
+  for (const k of LAYER_SURFACE_KEYS) if (a8[k] != null) surface[k] = a8[k];
+  return {
+    id: a8.id ?? makeId(),
+    name: String(a8.name ?? "Selection layer"),
+    selection,
+    color: a8.colorValue ?? (typeof a8.color === "string" && a8.color.startsWith("#") ? a8.color : "#8b5cf6"),
+    visible: true,
+    display: { representation: a8.representation ?? "ball-and-stick", opacity: a8.opacity ?? 1, color: a8.color && !a8.color.startsWith("#") ? a8.color : "uniform", ...surface }
+  };
+}
 async function createLayer(e, record2) {
   const selection = e.resolveTarget({ selection: record2.selection, structureId: record2.selection.structureId }, e.stateCache);
   const loci = e.lociFor(selection);
@@ -171646,7 +171697,12 @@ async function createLayer(e, record2) {
   const style = record2.display ?? {};
   const color = record2.color ?? style.colorValue ?? "#8b5cf6";
   checkColor(color);
-  for (const type3 of style.representations ?? [presetRepresentation(style.representation ?? "ball-and-stick")]) await e.plugin.builders.structure.representation.addRepresentation(c8, { type: type3, typeParams: representationParams(style), color: style.color ?? "uniform", colorParams: representationColorParams({ ...style, colorValue: color }) });
+  if (style.probeRadius != null || style.dielectric != null || style.ionicStrength != null || style.potentialRange != null) validateDisplay(style);
+  if (style.color === "electrostatic") e.ensurePotential(selection.structureId, style);
+  for (const rawType of style.representations ?? [presetRepresentation(style.representation ?? "ball-and-stick")]) {
+    const type3 = presetRepresentation(rawType);
+    await e.plugin.builders.structure.representation.addRepresentation(c8, { type: type3, typeParams: representationParams(style, {}, type3), color: style.color ?? "uniform", colorParams: representationColorParams({ ...style, colorValue: color }) });
+  }
   setSubtreeVisibility(e.plugin.state.data, c8.ref, record2.visible === false);
   e.layerItems.set(record2.id, { ref: c8.ref, record: clone(record2), signature: JSON.stringify(record2) });
   return record2;
@@ -171806,7 +171862,8 @@ async function executeOperation(e, command, state) {
   }
   if (action === "createTag" || action === "createLayer") {
     const selection = e.resolveTarget(a8, state);
-    const record2 = { id: a8.id ?? id(action === "createTag" ? "tag" : "layer"), name: String(a8.name ?? (action === "createTag" ? "Tag" : "Selection layer")), selection, color: a8.colorValue ?? (typeof a8.color === "string" && a8.color.startsWith("#") ? a8.color : "#8b5cf6"), visible: true, display: { representation: a8.representation ?? "ball-and-stick", opacity: a8.opacity ?? 1, color: a8.color && !a8.color.startsWith("#") ? a8.color : "uniform" } };
+    const record2 = buildLayerRecord(a8, selection, () => id(action === "createTag" ? "tag" : "layer"));
+    record2.name = String(a8.name ?? (action === "createTag" ? "Tag" : "Selection layer"));
     if (!record2.name.trim()) throw failure("INVALID_ARGUMENT", "A name is required");
     checkColor(record2.color);
     const key2 = action === "createTag" ? "tags" : "layers";
@@ -172005,6 +172062,208 @@ function registerKtTheme(plugin) {
   }
 }
 
+// src/viewer/electrostatics.js
+init_color3();
+init_color2();
+init_partial_charge();
+var COULOMB = 332.0637;
+var BACKBONE = {
+  N: -0.4157,
+  H: 0.2719,
+  CA: -0.0249,
+  HA: 0.1036,
+  C: 0.5973,
+  O: -0.5679,
+  OXT: -0.5679,
+  H1: 0.2719,
+  H2: 0.2719,
+  H3: 0.2719
+};
+var SIDECHAIN = {
+  ASP: { OD1: -0.5, OD2: -0.5 },
+  GLU: { OE1: -0.5, OE2: -0.5 },
+  LYS: { NZ: 1 },
+  ARG: { NH1: 0.5, NH2: 0.5, NE: 0.2 },
+  HIS: { ND1: 0.5, NE2: 0.5 },
+  SER: { OG: -0.4, HG: 0.4 },
+  THR: { OG1: -0.4, HG1: 0.4 },
+  TYR: { OH: -0.4, HH: 0.4 },
+  CYS: { SG: -0.3, HG: 0.3 },
+  ASN: { OD1: -0.5, ND2: 0.5 },
+  GLN: { OE1: -0.5, NE2: 0.5 },
+  TRP: { NE1: -0.3, HE1: 0.3 }
+};
+var NEUTRAL2 = Color(14673130);
+var STOPS2 = [
+  [-1, [214, 96, 92]],
+  [-0.5, [238, 176, 170]],
+  [0, [246, 247, 249]],
+  [0.5, [168, 196, 228]],
+  [1, [70, 108, 176]]
+];
+var colorCache = /* @__PURE__ */ new Map();
+function ramp2(t5) {
+  const clamped = Math.min(Math.max(t5, -1), 1);
+  const key2 = Math.round(clamped * 500);
+  const hit = colorCache.get(key2);
+  if (hit !== void 0) return hit;
+  let rgb = STOPS2[STOPS2.length - 1][1];
+  for (let i = 0; i < STOPS2.length - 1; i++) {
+    const [a8, ca] = STOPS2[i];
+    const [b16, cb2] = STOPS2[i + 1];
+    if (clamped >= a8 && clamped <= b16) {
+      const f = b16 > a8 ? (clamped - a8) / (b16 - a8) : 0;
+      rgb = [0, 1, 2].map((j) => Math.round(ca[j] + (cb2[j] - ca[j]) * f));
+      break;
+    }
+  }
+  const color = Color(rgb[0] << 16 | rgb[1] << 8 | rgb[2]);
+  colorCache.set(key2, color);
+  return color;
+}
+function potentialColor(value, range2 = 15) {
+  if (!Number.isFinite(value)) return NEUTRAL2;
+  return ramp2(value / Math.max(1e-6, Math.abs(range2)));
+}
+function debyeLength(ionicStrength, dielectric) {
+  const I = Math.max(0, Number(ionicStrength) || 0);
+  if (I <= 0) return Infinity;
+  return 3.04 / Math.sqrt(I) * Math.sqrt(Math.max(1, dielectric) / 80);
+}
+function assignCharges(model) {
+  const atoms2 = model.atomicHierarchy.atoms;
+  const residues2 = model.atomicHierarchy.residues;
+  const count3 = atoms2._rowCount;
+  const charges = new Float32Array(count3);
+  let parsed = null;
+  try {
+    const prop = AtomPartialCharge.Provider.get(model);
+    if (prop?.data) parsed = prop.data;
+  } catch {
+    parsed = null;
+  }
+  let net = 0;
+  let charged = 0;
+  for (let i = 0; i < count3; i++) {
+    let q = 0;
+    if (parsed) {
+      q = parsed.value(i) || 0;
+    } else {
+      const comp = residues2.label_comp_id.value(i);
+      const atomName = atoms2.label_atom_id.value(i).trim();
+      const side = SIDECHAIN[comp];
+      if (side && side[atomName] !== void 0) q = side[atomName];
+      else if (BACKBONE[atomName] !== void 0) q = BACKBONE[atomName];
+    }
+    charges[i] = q;
+    net += q;
+    if (q !== 0) charged++;
+  }
+  return { charges, source: parsed ? "parsed" : "model", net, charged, count: count3 };
+}
+function computePotentials(model, assigned, options = {}) {
+  const dielectric = Math.max(1, Number(options.dielectric) || 80);
+  const lambda = debyeLength(options.ionicStrength ?? 0.15, dielectric);
+  const cutoff = Math.max(5, Number(options.cutoff) || 40);
+  const conf = model.atomicConformation;
+  const n = assigned.count;
+  const q = assigned.charges;
+  const px = new Float64Array(n);
+  const py = new Float64Array(n);
+  const pz = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    px[i] = conf.x[i];
+    py[i] = conf.y[i];
+    pz[i] = conf.z[i];
+  }
+  const out = new Float32Array(n);
+  const cutoff2 = cutoff * cutoff;
+  const invDielectric = 1 / dielectric;
+  for (let i = 0; i < n; i++) {
+    const xi = px[i];
+    const yi = py[i];
+    const zi = pz[i];
+    let sum = 0;
+    for (let j = 0; j < n; j++) {
+      if (j === i) continue;
+      const qj = q[j];
+      if (qj === 0) continue;
+      const dx = xi - px[j];
+      const dy = yi - py[j];
+      const dz = zi - pz[j];
+      const r2 = dx * dx + dy * dy + dz * dz;
+      if (r2 > cutoff2 || r2 < 1e-6) continue;
+      const r = Math.sqrt(r2);
+      const screening = lambda === Infinity ? 1 : Math.exp(-r / lambda);
+      sum += qj / r * screening;
+    }
+    out[i] = COULOMB * sum * invDielectric;
+  }
+  return out;
+}
+var potentialByModel = /* @__PURE__ */ new WeakMap();
+var activeRange = 15;
+function setActivePotential(model, potential, range2) {
+  if (potential) potentialByModel.set(model, potential);
+  else potentialByModel.delete(model);
+  if (Number.isFinite(range2)) activeRange = range2;
+}
+function potentialStats(potential) {
+  if (!potential || !potential.length) return null;
+  let min5 = Infinity;
+  let max5 = -Infinity;
+  let sum = 0;
+  let count3 = 0;
+  for (let i = 0; i < potential.length; i++) {
+    const v5 = potential[i];
+    if (!Number.isFinite(v5)) continue;
+    if (v5 < min5) min5 = v5;
+    if (v5 > max5) max5 = v5;
+    sum += v5;
+    count3++;
+  }
+  if (!count3) return null;
+  return { min: min5, max: max5, mean: sum / count3, count: count3 };
+}
+var ElectrostaticThemeProvider = {
+  name: "electrostatic",
+  label: "Electrostatic potential",
+  category: ColorTheme.Category.Atom,
+  getParams: () => ({}),
+  isApplicable: () => true,
+  factory: (ctx, props) => ({
+    granularity: "atom",
+    preferSmoothing: false,
+    factory: ElectrostaticThemeProvider.factory,
+    props,
+    color: (location2) => {
+      try {
+        if (!location2?.unit) return NEUTRAL2;
+        const model = location2.unit.model;
+        const table = potentialByModel.get(model);
+        if (!table) return NEUTRAL2;
+        const atomIdx = location2.unit.elements[location2.element];
+        return potentialColor(table[atomIdx], activeRange);
+      } catch {
+        return NEUTRAL2;
+      }
+    },
+    description: "Screened Coulomb potential at atom centres (kcal/mol/e). Qualitative unless the charges come from a PDBQT file."
+  })
+};
+function registerElectrostaticTheme(plugin) {
+  try {
+    const reg = plugin?.representation?.structure?.themes?.colorThemeRegistry;
+    if (!reg) return false;
+    const existing = reg.get ? reg.get("electrostatic") : null;
+    if (existing && existing.name === "electrostatic") return true;
+    reg.add(ElectrostaticThemeProvider);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // src/viewer/engine.js
 var KT_FOCUS_CARBON = 14854543;
 var KT_CONTEXT_CARBON = 13226201;
@@ -172046,6 +172305,7 @@ var MolEngine = class {
     const plugin = new PluginContext(spec);
     await plugin.init();
     registerKtTheme(plugin);
+    registerElectrostaticTheme(plugin);
     this.plugin = plugin;
     await plugin.mountAsync(container);
     this.resizeObserver = new ResizeObserver(() => plugin.handleResize());
@@ -172114,6 +172374,35 @@ var MolEngine = class {
   }
   setGranularity(grain) {
     this.plugin?.managers.interactivity.setProps({ granularity: grain === "atom" ? "element" : "residue" });
+  }
+  /**
+   * Ensure a potential table exists for this structure and make it the one the
+   * colour theme reads. Cached per (structure, dielectric, ionic strength): the
+   * O(N²) sum is paid once, not on every repaint or theme update.
+   */
+  ensurePotential(structureId, display = {}) {
+    const structure = this.structures.get(structureId);
+    if (!structure) return null;
+    const model = structure.models[0];
+    if (!model) return null;
+    const dielectric = Number.isFinite(display.dielectric) ? display.dielectric : 80;
+    const ionicStrength = Number.isFinite(display.ionicStrength) ? display.ionicStrength : 0.15;
+    this.potentialCache ??= /* @__PURE__ */ new Map();
+    const key2 = `${structureId}|${dielectric}|${ionicStrength}`;
+    let entry = this.potentialCache.get(key2);
+    if (!entry) {
+      const assigned = assignCharges(model);
+      const potential = computePotentials(model, assigned, { dielectric, ionicStrength });
+      entry = {
+        potential,
+        stats: potentialStats(potential),
+        source: assigned.source,
+        netCharge: assigned.net
+      };
+      this.potentialCache.set(key2, entry);
+    }
+    setActivePotential(model, entry.potential, display.potentialRange ?? 15);
+    return entry;
   }
   structureNode(structureId) {
     const structure = this.structures.get(structureId);
@@ -172207,6 +172496,7 @@ var MolEngine = class {
       if (!node) throw new Error(`Structure ${structureId} has not loaded`);
       const mgr = this.plugin.managers.structure.component;
       validateDisplay(display);
+      if (display.color === "electrostatic") this.ensurePotential(structureId, display);
       const direct = REPRESENTATION_OPTIONS.some(([name]) => name === display.representation);
       const representation = display.representation === "default" ? "auto" : display.representation;
       const previousRepresentation = previous?.representation === "default" ? "auto" : previous?.representation;
@@ -172214,14 +172504,15 @@ var MolEngine = class {
         if (display.representations || direct) {
           await mgr.clearComponents([node]);
           const c8 = await this.plugin.builders.structure.tryCreateComponentStatic(node.cell, "all");
-          for (const type3 of display.representations ?? [representation]) {
+          for (const rawType of display.representations ?? [representation]) {
+            const type3 = presetRepresentation(rawType);
             const color = display.color ?? "chain-id";
             try {
-              await this.plugin.builders.structure.representation.addRepresentation(c8, { type: type3, color, colorParams: representationColorParams(display), typeParams: representationParams(display) });
+              await this.plugin.builders.structure.representation.addRepresentation(c8, { type: type3, color, colorParams: representationColorParams(display), typeParams: representationParams(display, {}, type3) });
             } catch (err) {
               if (color === "chain-id") throw err;
               console.error('[molecular] colour theme "' + color + '" failed, falling back to chain-id', err);
-              await this.plugin.builders.structure.representation.addRepresentation(c8, { type: type3, color: "chain-id", colorParams: {}, typeParams: representationParams(display) });
+              await this.plugin.builders.structure.representation.addRepresentation(c8, { type: type3, color: "chain-id", colorParams: {}, typeParams: representationParams(display, {}, type3) });
             }
           }
         } else {
@@ -172238,7 +172529,7 @@ var MolEngine = class {
       if (display.color && components.length) await mgr.updateRepresentationsTheme(components, { color: display.color, colorParams: representationColorParams(display) });
       if (components.length) {
         const update10 = this.plugin.state.data.build();
-        for (const c8 of components) for (const r of c8.representations) update10.to(r.cell).update((old) => ({ ...old, type: { ...old.type, params: representationParams(display, old.type.params) } }));
+        for (const c8 of components) for (const r of c8.representations) update10.to(r.cell).update((old) => ({ ...old, type: { ...old.type, params: representationParams(display, old.type.params, old.type.name) } }));
         await update10.commit();
       }
       if (display.background) this.plugin.canvas3d.setProps({ renderer: { ...MARKER_PROPS, backgroundColor: parseInt(display.background.slice(1), 16) } });

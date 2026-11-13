@@ -18,9 +18,10 @@ import { canvasBackground } from '../shared/theme.js';
 import { restoreView } from './output.js';
 import { executeOperation, syncObjects } from './operations.js';
 import { failure, clone, validateDisplay,REPRESENTATION_OPTIONS } from '../shared/model.js';
-import {representationParams,representationColorParams} from './representation-style.js';
+import {representationParams,representationColorParams,presetRepresentation} from './representation-style.js';
 import { chainsOf, resolveTarget } from './targets.js';
 import { registerKtTheme } from './kt-theme.js';
+import { registerElectrostaticTheme, assignCharges, computePotentials, setActivePotential, potentialStats } from './electrostatics.js';
 const KT_FOCUS_CARBON=0xe2a98f;   // 与蓝白红色带的暖端一致
 const KT_CONTEXT_CARBON=0xc9d0d9; // 冷中性灰，退到背景
 const FOCUS_MS=420;
@@ -67,6 +68,7 @@ export class MolEngine {
     const plugin = new PluginContext(spec);
     await plugin.init();
     registerKtTheme(plugin);
+    registerElectrostaticTheme(plugin);
     this.plugin = plugin;
     await plugin.mountAsync(container);
     this.resizeObserver=new ResizeObserver(()=>plugin.handleResize());this.resizeObserver.observe(container);
@@ -132,6 +134,36 @@ export class MolEngine {
 
   setGranularity(grain) {
     this.plugin?.managers.interactivity.setProps({ granularity: grain === 'atom' ? 'element' : 'residue' });
+  }
+
+  /**
+   * Ensure a potential table exists for this structure and make it the one the
+   * colour theme reads. Cached per (structure, dielectric, ionic strength): the
+   * O(N²) sum is paid once, not on every repaint or theme update.
+   */
+  ensurePotential(structureId, display = {}) {
+    const structure = this.structures.get(structureId);
+    if (!structure) return null;
+    const model = structure.models[0];
+    if (!model) return null;
+    const dielectric = Number.isFinite(display.dielectric) ? display.dielectric : 80;
+    const ionicStrength = Number.isFinite(display.ionicStrength) ? display.ionicStrength : 0.15;
+    this.potentialCache ??= new Map();
+    const key = `${structureId}|${dielectric}|${ionicStrength}`;
+    let entry = this.potentialCache.get(key);
+    if (!entry) {
+      const assigned = assignCharges(model);
+      const potential = computePotentials(model, assigned, { dielectric, ionicStrength });
+      entry = {
+        potential,
+        stats: potentialStats(potential),
+        source: assigned.source,
+        netCharge: assigned.net,
+      };
+      this.potentialCache.set(key, entry);
+    }
+    setActivePotential(model, entry.potential, display.potentialRange ?? 15);
+    return entry;
   }
 
   structureNode(structureId) {
@@ -235,6 +267,7 @@ export class MolEngine {
       if (!node) throw new Error(`Structure ${structureId} has not loaded`);
       const mgr = this.plugin.managers.structure.component;
       validateDisplay(display);
+      if (display.color === 'electrostatic') this.ensurePotential(structureId, display);
       const direct=REPRESENTATION_OPTIONS.some(([name])=>name===display.representation);
       const representation = display.representation === 'default' ? 'auto' : display.representation;
       const previousRepresentation = previous?.representation === 'default' ? 'auto' : previous?.representation;
@@ -242,16 +275,17 @@ export class MolEngine {
         if(display.representations||direct){
           await mgr.clearComponents([node]);
           const c=await this.plugin.builders.structure.tryCreateComponentStatic(node.cell,'all');
-          for(const type of display.representations??[representation]){
+          for(const rawType of display.representations??[representation]){
+            const type=presetRepresentation(rawType);
             const color=display.color??'chain-id';
             try{
-              await this.plugin.builders.structure.representation.addRepresentation(c,{type,color,colorParams:representationColorParams(display),typeParams:representationParams(display)});
+              await this.plugin.builders.structure.representation.addRepresentation(c,{type,color,colorParams:representationColorParams(display),typeParams:representationParams(display,{},type)});
             }catch(err){
               // Never leave the viewer blank because a custom colour theme failed:
               // fall back to the built-in chain colouring and surface the error.
               if(color==='chain-id')throw err;
               console.error('[molecular] colour theme "'+color+'" failed, falling back to chain-id',err);
-              await this.plugin.builders.structure.representation.addRepresentation(c,{type,color:'chain-id',colorParams:{},typeParams:representationParams(display)});
+              await this.plugin.builders.structure.representation.addRepresentation(c,{type,color:'chain-id',colorParams:{},typeParams:representationParams(display,{},type)});
             }
           }
         }else{
@@ -266,7 +300,7 @@ export class MolEngine {
       if (display.color && components.length) await mgr.updateRepresentationsTheme(components, { color: display.color,colorParams:representationColorParams(display) });
       if(components.length){
         const update=this.plugin.state.data.build();
-        for(const c of components)for(const r of c.representations)update.to(r.cell).update(old=>({...old,type:{...old.type,params:representationParams(display,old.type.params)}}));
+        for(const c of components)for(const r of c.representations)update.to(r.cell).update(old=>({...old,type:{...old.type,params:representationParams(display,old.type.params,old.type.name)}}));
         await update.commit();
       }
       if(display.background)this.plugin.canvas3d.setProps({renderer:{...MARKER_PROPS,backgroundColor:parseInt(display.background.slice(1),16)}});

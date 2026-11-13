@@ -28,6 +28,12 @@ The plugin is deliberately honest about what it does not know: contacts shown ar
 - Sequence strip with drag and shift-extend selection; click empty canvas to return to Overview.
 - Undo for scene edits. Removing residues hides them from the view without modifying the source file.
 
+**Surface and electrostatics**
+- Solvent-accessible surface: a Gaussian surface grown by the solvent probe radius (1.4 Å for water), selectable as its own representation, with the probe radius and smoothness adjustable. The molecular (solvent-excluded) surface remains available beside it.
+- Electrostatic potential: the screened Coulomb potential at atom centres, painted blue for positive and red for negative. Charges are taken from a PDBQT file when the structure carries them; otherwise a built-in residue model supplies backbone Amber charges and formal side-chain charges.
+- Dielectric constant, ionic strength (Debye screening), and the potential range that maps to full colour saturation are adjustable.
+- Local patches: any selection can carry its own solvent surface or electrostatic colouring as a layer, leaving the rest of the structure untouched.
+
 **Measurements and annotations**
 - Distance, angle, dihedral, plane, orientation axes, and free labels, all computed from actual atom coordinates. Each one can be restyled, hidden, or removed independently.
 - Named tags and coloured layers that survive representation changes.
@@ -159,6 +165,9 @@ cordis.patch.yml      bundle insertion for the DSH profile
 - Contacts around a focus are geometric inference, not interaction energies or binding affinities.
 - MP4 export depends on an encoder being present; when it is not, the option is disabled and WebM remains available.
 - The composer only supports `@` and `/` triggers. This plugin does not modify DSH core to add `#`.
+- Electrostatic potentials are screened Coulomb sums at atom centres. Unless the input is a PDBQT file carrying Gasteiger charges, the charge model is qualitative: it places the positive and negative regions correctly, but it is neither a force-field calculation nor a Poisson–Boltzmann solution.
+- A surface mesh inherits the colour of its nearest atom, so the potential drawn on a surface is the value at atom centres rather than one solved on the surface itself.
+- Solvent-accessible surfaces are Gaussian approximations grown by the probe radius, not a Connolly rolling-probe construction.
 - Pre-1.0: the Agent tool surface may change between minor versions.
 
 ## License
