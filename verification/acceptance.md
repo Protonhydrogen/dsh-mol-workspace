@@ -6,17 +6,17 @@ DSH Desktop was restarted and the installed bundle was compared against the fina
 
 | Check | Result and evidence |
 |---|---|
-| Closed sidebar opens for Agent load | PASS, new independent conversation, v0.3.0; `dsh-auto-open-v030.png` |
-| Closed sidebar opens for existing-structure focus | PASS after v0.3.1 restart; focus structure 1 SER3 without loading again, succeeded with 6 atoms; subsequent TOP7 load/focus and connected renderer confirmed; `dsh-auto-open-v031.png` |
-| Focus geometry and neighboring residues | PASS, TOP7 A19 bonded details, predicted interaction geometry and less transparent surroundings; `dsh-focus-v031.png` |
-| Blank canvas returns Overview | PASS, one empty canvas click removed local detail and restored the complete visible protein; `dsh-overview-v031.png` |
-| Official clipping controls | PASS, native View panel shows clipping 0, far plane, minimum near 1, fog 15; `dsh-clipping-v031.png`. Actual changed Canvas3D values are covered by the render test. |
-| English sidebar and controls | PASS, Mol* Viewer title, Style, Capture, Graphics, sequence, menu; `dsh-style-v031.png`, `dsh-menu-v031.png` |
+| Closed sidebar opens for Agent load | PASS, new independent conversation, v0.3.0 |
+| Closed sidebar opens for existing-structure focus | PASS after v0.3.1 restart; focus structure 1 SER3 without loading again, succeeded with 6 atoms; subsequent TOP7 load/focus and connected renderer confirmed |
+| Focus geometry and neighboring residues | PASS, TOP7 A19 bonded details, predicted interaction geometry and less transparent surroundings |
+| Blank canvas returns Overview | PASS, one empty canvas click removed local detail and restored the complete visible protein |
+| Official clipping controls | PASS, native View panel shows clipping 0, far plane, minimum near 1, fog 15. Actual changed Canvas3D values are covered by the render test. |
+| English sidebar and controls | PASS: Mol* Viewer title, Style, Capture, Graphics, sequence, menu |
 | Style template applies | PASS, X-Ray produced simultaneous cartoon and molecular surface; all seven templates also checked against actual render objects |
-| Image/Video controls | PASS; `dsh-image-v031.png`, `dsh-video-v031.png` |
-| Sequence selection and native composer reference | PASS, TYR A19 selected and visible citation inserted without sending; `dsh-composer-v031.png` |
+| Image/Video controls | PASS |
+| Sequence selection and native composer reference | PASS, TYR A19 selected and visible citation inserted without sending |
 
-Earlier native regression evidence remains: exact atom O A19 (`dsh-exact-atom.png`), eight-residue sequence drag (`dsh-sequence-composer-reference.png`), DSH theme following (`dsh-dark-theme.png`), Agent N–CA distance 1.475828832083274 Å (`dsh-agent-distance.png`). The dark theme was restored to the user's light setting after that check.
+Earlier native regression checks also passed: exact atom O A19, eight-residue sequence drag, DSH theme following, and an Agent N–CA distance of 1.475828832083274 Å. The dark theme was restored to the user light setting after that check.
 
 ## Automated and real-render verification
 
@@ -48,4 +48,4 @@ Change: `src/viewer/palette.js` is now the single source — chain palette `#9aa
 
 Motion: `overview()` no longer sets the camera with duration 0 and no longer deletes the local detail first. The camera pulls back over 640 ms, the detail stays on screen during the move and is removed when the transition ends; `focus()` now uses 420 ms. A frame captured 159 ms into the gesture still shows the gold residue, and the frame after the move does not.
 
-Verified on the local harness (Chrome + swiftshader, 1QYS): before/after renders in `Default\molecular-palette-before-after.png`, transition frames in `Codex_install\scratch\mw-run\frame-*.png`. The DSH window itself needs a restart to pick up the new `client.js`.
+Verified on a local harness (Chrome + swiftshader, 1QYS) by comparing before/after renders and frames captured mid-transition. The DSH window needs a restart to pick up a new `client.js`.

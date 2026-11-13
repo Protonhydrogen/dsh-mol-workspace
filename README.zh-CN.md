@@ -4,7 +4,7 @@
 
 基于 [Mol*](https://github.com/molstar/molstar) 的 DeepSeek Harness 右侧栏原生 3D 分子查看器。侧栏和 Agent 共用同一个 Molecular Context Service：你用鼠标做的选区，就是 Agent 操作的对象；Agent 发出的命令，落回你正在看的那块画布。
 
-![总览](verification/dsh-overview-v031.png)
+![总览](verification/viewer-overview.png)
 
 ## 能做什么
 
@@ -26,7 +26,7 @@
 
 | 聚焦与 5 Å 环境 | 样式预设 |
 |---|---|
-| ![聚焦](verification/dsh-focus-v031.png) | ![样式](verification/dsh-style-v031.png) |
+| ![聚焦](verification/viewer-focus.png) | ![样式](verification/viewer-style.png) |
 
 ## 安装
 
@@ -38,17 +38,17 @@
    ```json
    {
      "dependencies": {
-       "@local/molecular-workspace2": "link:/仓库的绝对路径/dsh-mol-workspace"
+       "dsh-mol-workspace": "link:/仓库的绝对路径/dsh-mol-workspace"
      },
      "dsh": {
        "profile": {
-         "bundles": ["@local/molecular-workspace2"]
+         "bundles": ["dsh-mol-workspace"]
        }
      }
    }
    ```
 
-   包名要保持 `@local/molecular-workspace2`：`cordis.patch.yml` 插入的就是这个 id，`client.js` 里的模块 id 也与之一致。
+   依赖键名、bundle 条目与本仓库 `package.json` 里的 `name` 三者必须一致：`cordis.patch.yml` 插入的就是这个 id，`client.js` 里的模块 id 也与之一致。
 
 3. `cd ~/.dsh/profiles/<名称> && pnpm install`，然后**完整重启** DSH（宿主端是 ESM，有缓存）。
 4. 打开右侧栏，选择 **Mol* Viewer**。

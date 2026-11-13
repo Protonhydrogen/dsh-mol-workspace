@@ -7,7 +7,7 @@ A native 3D molecular viewer for the [DeepSeek Harness](https://github.com/deeps
 
 [中文说明](README.zh-CN.md)
 
-![Overview](verification/dsh-overview-v031.png)
+![Overview](verification/viewer-overview.png)
 
 ## What it does
 
@@ -52,11 +52,8 @@ The plugin is deliberately honest about what it does not know: contacts shown ar
 
 | Focus with 5 Å neighbourhood | Style presets |
 |---|---|
-| ![Focus](verification/dsh-focus-v031.png) | ![Style](verification/dsh-style-v031.png) |
+| ![Focus](verification/viewer-focus.png) | ![Style](verification/viewer-style.png) |
 
-| Selection handed to the composer | Sequence and ranges |
-|---|---|
-| ![Composer](verification/dsh-composer-reference.png) | ![Sequence](verification/dsh-sequence-composer-reference.png) |
 
 ## Requirements
 
@@ -79,19 +76,19 @@ The plugin is installed as a local package in a DSH profile. A profile lives und
    ```json
    {
      "dependencies": {
-       "@local/molecular-workspace2": "link:/absolute/path/to/dsh-mol-workspace"
+       "dsh-mol-workspace": "link:/absolute/path/to/dsh-mol-workspace"
      },
      "dsh": {
        "profile": {
          "bundles": [
-           "@local/molecular-workspace2"
+           "dsh-mol-workspace"
          ]
        }
      }
    }
    ```
 
-   Keep the package name `@local/molecular-workspace2`: the bundle's `cordis.patch.yml` inserts that id, and the client module id in `client.js` matches it.
+   The dependency key, the bundle entry, and the `name` in this repository's `package.json` must all stay identical: `cordis.patch.yml` inserts that id and the client module id inside `client.js` matches it.
 
 3. Install the profile dependencies and restart DeepSeek Harness:
 
