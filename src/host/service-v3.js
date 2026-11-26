@@ -1,3 +1,4 @@
+import {readTrajectoryFile} from './trajectory-file.js';
 import { basename, dirname, resolve, relative, isAbsolute, join } from 'node:path';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
@@ -72,6 +73,15 @@ export class MolecularContextService extends TypertRemoteService {
     return {...ref};
   }
   async getStructureData(sessionId,structureId){return this._state(sessionId).getStructureData(structureId);}
+  async getTrajectoryData(sessionId,structureId,path){
+    const state=this._state(sessionId),sid=String(structureId);
+    const descriptor=state.structures.get(sid)?.ref.mdTrajectory;
+    const running=[...state.commands.values()].some(c=>c.action==='loadTrajectory'&&c.status==='running'&&String(c.args.structureId)===sid&&c.args.path===path);
+    if(!running&&descriptor?.path!==path)throw failure('TARGET_NOT_FOUND','This trajectory has not been requested for this structure');
+    const result=await readTrajectoryFile(path,this._cwd(sessionId));
+    if(!running&&descriptor.sha256!==result.sha256)throw failure('VERSION_CONFLICT','Trajectory changed. Attach it again.');
+    return result;
+  }
   async getPotentialGrid(sessionId,path){
     const state=this._state(sessionId);
     if(!/\.dx$/i.test(path))throw failure('INVALID_ARGUMENT','Use an uncompressed .dx potential map');

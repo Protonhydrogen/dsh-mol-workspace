@@ -28,6 +28,16 @@ export class WorkspaceState {
     const camera=report.camera;if(camera&&['position','target','up'].every(k=>Array.isArray(camera[k])&&camera[k].length===3&&camera[k].every(Number.isFinite))&&JSON.stringify(this.camera.snapshot)!==JSON.stringify(camera)){this.camera={...this.camera,snapshot:clone(camera)};this.changed();}
     const t=report.trajectory,ref=t&&this.structures.get(String(t.structureId))?.ref;
     if(t&&ref&&Number.isInteger(t.frame)&&t.frame>=0&&t.frame<(ref.frameCount??1)&&JSON.stringify(this.trajectory)!==JSON.stringify(t)){this.trajectory=clone(t);this.changed();}
+    if(t&&ref&&Number.isInteger(t.frame)&&t.frame>=0&&t.frame<(ref.frameCount??1)&&Array.isArray(report.measurementValues)){
+      const updated=this.measurements.map(m=>{
+        const sample=report.measurementValues.find(s=>s.id===m.id);
+        if(!sample||JSON.stringify(sample.points)!==JSON.stringify(m.points)||sample.type!==m.type)return m;
+        if(sample.value!==null&&!Number.isFinite(sample.value))return m;
+        if(!Array.isArray(sample.actualPoints)||!sample.actualPoints.length||sample.actualPoints.some(p=>!Array.isArray(p.position)||p.position.length!==3||!p.position.every(Number.isFinite)))return m;
+        return {...m,value:sample.value,actualPoints:clone(sample.actualPoints),...(sample.geometry?{geometry:clone(sample.geometry)}:{})};
+      });
+      if(JSON.stringify(updated)!==JSON.stringify(this.measurements)){this.measurements=updated;this.changed();}
+    }
     if (changed) this.changed(false);
     return {owner:true,viewerId};
   }
@@ -100,7 +110,7 @@ export class WorkspaceState {
     if(c.status!=='running')throw failure('INVALID_ARGUMENT','Claim the command before acknowledging it');
     if(this.now()>c.deadline){this.finish(c,'timed_out',null,{code:'TIMED_OUT',message:'Renderer acknowledgement arrived after the deadline'});return this.getCommand(c.id);}
     if(!this.connected()||this.viewer.id!==viewerId)throw failure('VIEWER_NOT_CONNECTED','Renderer lease expired');
-    if(report.ok){if(c.action==='undo')this.undoStack.pop();else if(undoable.has(c.action)){this.undoStack.push(this.undoFrame());this.undoStack=this.undoStack.slice(-20);}else if(c.action==='trajectory'&&['frame','step','play'].includes(c.args.mode))this.undoStack=[];this.patch(report.patch??{});this.finish(c,'succeeded',clone(report.value??null));}
+    if(report.ok){if(c.action==='undo')this.undoStack.pop();else if(undoable.has(c.action)){this.undoStack.push(this.undoFrame());this.undoStack=this.undoStack.slice(-20);}else if(c.action==='loadTrajectory'||c.action==='trajectory'&&['frame','step','play'].includes(c.args.mode))this.undoStack=[];this.patch(report.patch??{});this.finish(c,'succeeded',clone(report.value??null));}
     else this.finish(c,'failed',null,{code:report.error?.code??'EXECUTION_FAILED',message:String(report.error?.message??'Renderer operation failed')});
     return this.getCommand(c.id);
   }

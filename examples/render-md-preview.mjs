@@ -1,0 +1,33 @@
+const stamp=Date.now();
+import {mkdir,writeFile} from 'node:fs/promises';
+import {resolve,join} from 'node:path';
+const root=resolve(process.argv[2]||'.'),base=process.env.DSH_MOL_API||'http://127.0.0.1:43140/api/';
+async function api(method,...args){const r=await(await fetch(base+method,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(args)})).json();if(!r.ok)throw Error(r.error.message);return r.value;}
+const tool=async(n,args)=>(await api('callTool','molecular_'+n,args)).result;
+const command=(action,args)=>tool('control',{action,args});
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+await mkdir(join(root,'review'),{recursive:true});
+await new Promise(r=>setTimeout(r,1500));
+for(const s of (await api('getState')).structures)await command('removeStructure',{structureId:s.structureId});
+const loaded=await api('callTool','molecular_load',{path:join(root,process.argv[3]||'md-topology.pdb')});
+const sid=loaded.structureId,t0=performance.now();
+const attached=await tool('trajectory',{structureId:sid,path:join(root,process.argv[4]||'md-trajectory.dcd'),atomOrderConfirmed:true});
+const attachMs=performance.now()-t0;
+await command('setDisplay',{structureId:sid,representations:['backbone'],quality:'low',color:'chain-id',sizeFactor:.7});
+await command('clearSelection',{});
+await command('trajectory',{structureId:sid,mode:'frame',frame:0});
+const first=await command('getResidues',{structureId:sid,maxAtoms:20});
+await command('trajectory',{structureId:sid,mode:'frame',frame:10});
+const second=await command('getResidues',{structureId:sid,maxAtoms:20});
+const movement=Math.max(...first.atoms.map((a,i)=>Math.hypot(...a.position.map((x,j)=>x-second.atoms[i].position[j]))));
+if(!(movement>0))throw Error('Frame coordinates did not move');
+await command('trajectory',{structureId:sid,mode:'play',fps:12});
+const samples=[];
+for(let i=0;i<4;i++){await wait(700);samples.push({time:Date.now(),...(await api('getState')).trajectory});}
+const video=await command('trajectory',{structureId:sid,mode:'video',seconds:4,fps:12,width:960,height:720,format:'webm',background:'white',path:'review/md-playback-'+stamp+'.webm'});
+const pauseStart=performance.now(),paused=await command('trajectory',{structureId:sid,mode:'pause'}),pauseRoundTripMs=performance.now()-pauseStart;
+await wait(1000);const frozen=(await api('getState')).trajectory;
+if(frozen.playing||frozen.frame!==paused.frame)throw Error('Pause did not hold the frame');
+const image=await command('exportImage',{width:1200,height:900,format:'png',background:'white',path:'review/md-playback-'+stamp+'.png'});
+const report={description:'Local trajectory supplied by the operator; record its preparation provenance separately',frameCount:attached.frameCount,atoms:attached.atomCount,attachMs,movementAmongFirst20AtomsAngstrom:movement,pauseRoundTripMs,playbackStats:paused.playbackStats,samples,video:{path:video.path,bytes:video.byteLength},image:{path:image.path}};
+await writeFile(join(root,'review','md-playback-report.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));

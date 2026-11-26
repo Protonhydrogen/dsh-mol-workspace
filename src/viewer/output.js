@@ -1,3 +1,5 @@
+import {refreshMeasurementValues,currentMeasurements} from './measurement-tracking.js';
+import {createFramePlayback} from './md-trajectory.js';
 import { AlignSequences } from 'molstar/lib/mol-model/sequence/alignment/sequence';
 import { OrderedSet } from 'molstar/lib/mol-data/int';
 import { Mat4 } from 'molstar/lib/mol-math/linear-algebra';
@@ -10,7 +12,7 @@ import { chainsOf } from './targets.js';
 import { clone, failure } from '../shared/model.js';
 import {videoEncoding} from './video-codecs.js';
 
-function evidence(e,state){return {schemaVersion:1,workspaceId:state.workspaceId,revision:state.revision,structures:state.structures,selection:state.selection,tags:state.tags,layers:state.layers,measurements:state.measurements,camera:e.plugin.canvas3d.camera.getSnapshot(),trajectory:state.trajectory};}
+function evidence(e,state){return {schemaVersion:1,workspaceId:state.workspaceId,revision:state.revision,structures:state.structures,selection:state.selection,tags:state.tags,layers:state.layers,measurements:currentMeasurements(e,state),camera:e.plugin.canvas3d.camera.getSnapshot(),trajectory:state.trajectory};}
 export async function exportImage(e,a,state){
   const helper=e.plugin.helpers.viewportScreenshot;
   if(!helper)throw failure('UNSUPPORTED_CAPABILITY','Image capture is not available');
@@ -49,21 +51,30 @@ async function setFrame(e,sid,frame){
   await e.plugin.state.data.build().to(modelRef).update(old=>({...old,modelIndex:index})).commit();
   tr.frame=index;const node=e.structureNode(sid);const current=node?.transform?.cell.obj?.data??node?.properties?.cell.obj?.data??node?.cell.obj?.data;
   if(current){e.structures.set(sid,current);e.residues.set(sid,extractResidues(current));}
+  refreshMeasurementValues(e,sid);
   return {structureId:sid,frame:index,frameCount:tr.frameCount};
 }
 export async function trajectory(e,a,state){
   const sid=String(a.structureId??state.activeStructureId);const tr=e.trajectories.get(sid);
   if(!tr)throw failure('TARGET_NOT_FOUND','Trajectory is not loaded');
-  if(a.mode==='pause'){clearInterval(e.playTimer);e.playTimer=null;await e.frameWork;return {value:{structureId:sid,frame:tr.frame,frameCount:tr.frameCount,playing:false},patch:{trajectory:{structureId:sid,frame:tr.frame,frameCount:tr.frameCount,playing:false}}};}
+  if(a.mode==='pause'){await e.playback?.pause();await e.frameWork;return {value:{structureId:sid,frame:tr.frame,frameCount:tr.frameCount,playing:false,playbackStats:e.playback?.stats??null},patch:{measurements:currentMeasurements(e,state),trajectory:{structureId:sid,frame:tr.frame,frameCount:tr.frameCount,playing:false}}};}
   if(tr.frameCount<2)throw failure('UNSUPPORTED_CAPABILITY','This structure contains one frame');
   if(a.mode==='play'){
     const fps=Number(a.fps??5);if(!Number.isFinite(fps)||fps<1||fps>30)throw failure('INVALID_ARGUMENT','Playback FPS must be between 1 and 30');
-    clearInterval(e.playTimer);e.playingStructureId=sid;e.playTimer=setInterval(()=>{if(e.frameBusy||e.disposed)return;e.frameBusy=true;e.frameWork=setFrame(e,sid,tr.frame+1).catch(err=>{clearInterval(e.playTimer);e.playTimer=null;e.onError?.(err);}).finally(()=>{e.frameBusy=false;});},1000/fps);
+    await e.playback?.pause();
+
+    e.playingStructureId=sid;
+    e.playback ??= createFramePlayback({
+      setFrame:index=>setFrame(e,e.playingStructureId,index),
+      onError:err=>e.onError?.(err)
+    });
+    e.playback.play({frame:tr.frame,frameCount:tr.frameCount,fps});
+
     return {value:{playing:true,frameCount:tr.frameCount},patch:{trajectory:{structureId:sid,frame:tr.frame,frameCount:tr.frameCount,playing:true,fps}}};
   }
   if(a.mode!=='step'&&a.mode!=='frame')throw failure('INVALID_ARGUMENT','Trajectory mode must be play, pause, step or frame');
-  clearInterval(e.playTimer);e.playTimer=null;await e.frameWork;const value=await setFrame(e,sid,a.mode==='frame'?Number(a.frame):tr.frame+Number(a.by??1));
-  return {value,patch:{trajectory:{...value,playing:false},selection:null,structureUpdates:[e.metadata(sid)]}};
+  await e.playback?.pause();await e.frameWork;const value=await setFrame(e,sid,a.mode==='frame'?Number(a.frame):tr.frame+Number(a.by??1));
+  return {value,patch:{measurements:currentMeasurements(e,state),trajectory:{...value,playing:false},selection:null,structureUpdates:[e.metadata(sid)]}};
 }
 
 export async function exportVideo(e,a,state){
@@ -124,7 +135,7 @@ export async function restoreView(e,state){
  const snapshot=state.camera?.snapshot;if(snapshot&&(!e.cameraRestored||e.viewerOwner===false)&&e.appliedCamera!==JSON.stringify(snapshot)){e.plugin.canvas3d.camera.setState(snapshot,0);e.appliedCamera=JSON.stringify(snapshot);}e.cameraRestored=true;
   const t=state.trajectory;
   if(t?.structureId&&Number.isInteger(t.frame)&&e.trajectories.has(t.structureId)){
-    const locallyPlaying=e.playTimer&&e.playingStructureId===t.structureId;
+    const locallyPlaying=e.playback?.playing&&e.playingStructureId===t.structureId;
     if(!locallyPlaying&&e.trajectories.get(t.structureId).frame!==t.frame)await setFrame(e,t.structureId,t.frame);
   }  const alignment=state.camera?.alignment;
   if(alignment&&e.restoredAlignment!==JSON.stringify(alignment)&&e.structures.has(alignment.mobileId)){
@@ -142,7 +153,7 @@ async function exportTrajectoryRange(e,a,state){
  if(!Number.isInteger(width)||!Number.isInteger(height)||width<128||height<128||width>3840||height>2160)throw failure('UNSUPPORTED_CAPABILITY','Video dimensions must be 128–3840 × 128–2160');
  const {mime,format,container}=videoEncoding(a.format);
  const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;const ctx=canvas.getContext('2d');const stream=canvas.captureStream(0),track=stream.getVideoTracks()[0],recorder=new MediaRecorder(stream,{mimeType:mime}),chunks=[];
- const original=tr.frame,recordEvidence=evidence(e,state);clearInterval(e.playTimer);e.playTimer=null;await e.frameWork;
+ const original=tr.frame,recordEvidence=evidence(e,state);await e.playback?.pause();await e.frameWork;
  const stopped=new Promise((resolve,reject)=>{recorder.ondataavailable=ev=>{if(ev.data.size)chunks.push(ev.data);};recorder.onstop=resolve;recorder.onerror=ev=>reject(ev.error??new Error('Video encoding failed'));});
  const draw=async frame=>{await setFrame(e,sid,frame);const result=await exportImage(e,{width,height,format:'png',transparent:false,background:a.background},state);const image=new Image();image.src=result.value.dataUrl;await image.decode();ctx.drawImage(image,0,0);};
  try{

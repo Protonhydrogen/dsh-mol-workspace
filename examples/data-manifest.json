@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "sources": {
+    "5X8L": {
+      "coordinates": "https://files.rcsb.org/download/5X8L.cif.gz",
+      "entry": "https://www.rcsb.org/structure/5X8L",
+      "doi": "https://doi.org/10.2210/pdb5X8L/pdb",
+      "paper": "https://doi.org/10.1038/s41598-017-06002-8"
+    },
+    "3JAH": {
+      "coordinates": "https://files.rcsb.org/download/3JAH.cif.gz",
+      "entry": "https://www.rcsb.org/structure/3JAH",
+      "doi": "https://doi.org/10.2210/pdb3JAH/pdb",
+      "paper": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4591471/"
+    }
+  },
+  "antibody": {
+    "title": "PD-L1 / atezolizumab Fab interface",
+    "pdbId": "5X8L",
+    "resolutionAngstrom": 3.1,
+    "assembly": "Deposited biological assembly 1: label chains A/B/C, auth chains A/K/F, identity operation.",
+    "chains": {
+      "antigen": {
+        "label": "A",
+        "auth": "A"
+      },
+      "light": {
+        "label": "B",
+        "auth": "K"
+      },
+      "heavy": {
+        "label": "C",
+        "auth": "F"
+      }
+    },
+    "interfaceCriterion": "Any interchain non-hydrogen atom distance <= 4.5 angstrom. Residues are identified by native author numbering.",
+    "chargedPairCriterion": "Opposite-charge side-chain atom proximity <= 4.0 angstrom: Asp OD1/OD2 or Glu OE1/OE2 against Lys NZ or Arg NE/NH1/NH2. Histidine and termini are excluded because their protonation was not assigned.",
+    "expectedChargedPairs": [
+      {
+        "antigen": "A ARG125 NE",
+        "antibody": "F ASP31 OD1",
+        "distanceAngstrom": 2.9756
+      },
+      {
+        "antigen": "A ARG113 NE",
+        "antibody": "F ASP31 OD1",
+        "distanceAngstrom": 3.2756
+      }
+    ],
+    "caution": "These are coordinate-based candidate ionic contacts, not measured interaction energies or proof of favorable net binding. A residue-charge or screened-Coulomb surface is an approximate model, not an APBS/Poisson-Boltzmann calculation. Keep surface labels consistent with the actual implementation."
+  },
+  "ribosome": {
+    "title": "Mammalian UAG termination complex: E/P tRNAs and A-site eRF1",
+    "pdbId": "3JAH",
+    "resolutionAngstrom": 3.45,
+    "chains": {
+      "pTrna": {
+        "label": "TA",
+        "auth": "2",
+        "name": "P-site tRNA(Val)"
+      },
+      "eTrna": {
+        "label": "UA",
+        "auth": "3",
+        "name": "E-site tRNA(Lys)"
+      },
+      "erf1": {
+        "label": "HC",
+        "auth": "ii",
+        "name": "A-site eRF1(AAQ)"
+      },
+      "abce1": {
+        "label": "IC",
+        "auth": "jj"
+      },
+      "mrna": {
+        "label": "GC",
+        "auth": "hh"
+      },
+      "nascent": {
+        "label": "SA",
+        "auth": "1"
+      }
+    },
+    "siteEvidence": {
+      "primaryPaper": "https://pmc.ncbi.nlm.nih.gov/articles/PMC4591471/",
+      "P": "The substrate stops after Val68 of human Sec61beta (Extended Data Fig. 1 and Fig. 5). The deposited Val tRNA is TA/auth2; Fig. 1 assigns the peptidyl tRNA to the P site.",
+      "E": "The other deposited tRNA is Lys, UA/auth3; the primary structure overview identifies the two occupied tRNA sites as P and E, while eRF1 occupies A.",
+      "A": "The paper's Fig. 1 and RCSB entry identify HC/authii eRF1 at the A site. It carries GG-to-AA substitutions in the GGQ motif and is correctly described as eRF1(AAQ)."
+    },
+    "contextNote": "fullContext retains every deposited atom except separately rendered eRF1 HC, P-tRNA TA, E-tRNA UA and mRNA GC. Context plus those four full component files is an exact disjoint partition of all 226454 source atoms. Backbone and CA/P trace are optional reduced representations; use fullContext for a transparent global view preserving all other components.",
+    "nativeGeometryCheck": {
+      "reference": "Deposited coordinates; author numbering. Geometric distances, not assigned covalent bond lengths.",
+      "Psite": {
+        "from": "2 A76 O3'",
+        "to": "1 VAL68 C",
+        "distanceAngstrom": 2.6869696686
+      },
+      "Esite": {
+        "from": "3 A75 O3'",
+        "to": "1 VAL68 C",
+        "distanceAngstrom": 48.2475500207
+      }
+    },
+    "fullContext": {
+      "file": "3JAH-context-all-atoms.cif",
+      "excludesLabelChains": [
+        "HC",
+        "TA",
+        "UA",
+        "GC"
+      ],
+      "includes": "All other deposited atoms, including every other polymer chain, nascent peptide, ABCE1, magnesium, zinc, ADP and iron-sulfur clusters. No ATOM/HETATM filtering.",
+      "sourceAtomCount": 226454,
+      "contextAtomCount": 219708,
+      "separatelyRenderedAtomCount": 6746,
+      "labelChainCount": 290,
+      "authChainCount": 84,
+      "atomRecordCount": 219435,
+      "hetatmRecordCount": 273
+    }
+  }
+}

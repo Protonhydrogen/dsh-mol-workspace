@@ -1,6 +1,7 @@
 export const REMOTE_METHODS = {
   getViewerRequests:[],acknowledgeViewerRequest:[['sessionId','string'],['requestId','string']],releaseViewer:[['sessionId','string'],['viewerId','string']],
   load:[['sessionId','string'],['path','string']],getStructureData:[['sessionId','string'],['structureId','string']],getState:[['sessionId','string']],
+  getTrajectoryData:[['sessionId','string'],['structureId','string'],['path','string']],
   getPotentialGrid:[['sessionId','string'],['path','string']],
   select:[['sessionId','string'],['selection','json']],focus:[['sessionId','string'],['selection','json']],highlight:[['sessionId','string'],['selection','json']],
   setDisplay:[['sessionId','string'],['structureId','string'],['patch','json']],

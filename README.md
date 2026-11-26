@@ -7,15 +7,27 @@ A native 3D molecular viewer for the [DeepSeek Harness](https://github.com/deeps
 
 [中文说明](README.zh-CN.md)
 
-![Global electrostatic preview of carbonic anhydrase II bound to acetazolamide](verification/viewer-electrostatics-3hs4.png)
+![PD-L1 recognition by atezolizumab](verification/pdl1-recognition.png)
 
-[Human carbonic anhydrase II with acetazolamide (PDB 3HS4)](https://www.rcsb.org/structure/3HS4). Red and blue show negative and positive values on the full protein surface. Acetazolamide appears as gold ball-and-stick and zinc as a teal sphere. Colors are from the protein side-chain preview in reduced units.
+[PD-L1 / atezolizumab Fab (PDB 5X8L)](https://www.rcsb.org/structure/5X8L): antigen in steel blue, heavy chain in plum, light chain in gold, and the measured interface as sticks.
 
 ## What it does
 
 Load a local PDB or mmCIF file, or a four-character PDB ID, and inspect it in the sidebar without leaving the conversation. Select residues, chains, or single atoms; focus on a binding site; measure real geometry; take a publication-ready image; or hand the current selection to the Agent as a reference in your next message.
 
 The plugin is deliberately honest about what it does not know: contacts shown around a focused residue are geometry-inferred proximity, not interaction energies, and no figure it produces is an experimental conclusion.
+
+## Reproducible examples
+
+See [PD-L1 / antibody and full-ribosome preparation](examples/README.md), [DSH prompts](examples/DSH_PROMPTS.md), and [MD trajectory import](docs/MD_TRAJECTORIES.md). The scientific manifests and viewer-only PNGs contain no desktop tasks or local paths. Local research trajectories are excluded from the public package.
+
+![Soft full-antigen electrostatic preview](verification/pdl1-electrostatic-soft.png)
+
+The antigen carries a full, softly colored molecular surface. This example uses a screened protein-side-chain preview in reduced units; a matching supplied APBS OpenDX map can be used instead.
+
+![A, P and E sites in the full 3JAH context](verification/3jah-sites.png)
+
+[3JAH](https://www.rcsb.org/structure/3JAH): A-site eRF1(AAQ) in coral, P-site Val-tRNA in gold, E-site Lys-tRNA in teal, and mRNA in purple. All remaining deposited atoms stay loaded in a translucent gray context. See the [global overview](verification/3jah-global.png) and [scientific manifest](verification/examples.json).
 
 ## Features
 
@@ -46,7 +58,7 @@ The plugin is deliberately honest about what it does not know: contacts shown ar
 - PNG/JPEG up to 8K, including transparent PNG.
 - Selection export to mmCIF.
 - WebM video with frame-range selection, 1080p/4K/custom sizes, 24/30/60 fps. MP4 is probed first and marked unavailable when the environment cannot produce valid frames.
-- Trajectory playback over multi-model files.
+- Native bounded DCD/XTC import with matching PDB/mmCIF topology; serial playback with overdue-frame skipping, pause, seek and frame-range export. Multi-model files remain supported.
 - Rigid alignment between two structures with RMSD and the transform matrix.
 - Every export writes an `evidence` JSON next to the file it produced.
 
@@ -54,7 +66,7 @@ The plugin is deliberately honest about what it does not know: contacts shown ar
 - "Add to chat" and "Send selection to chat" insert a visible residue reference into the native composer without discarding your draft, and without auto-sending.
 - Type `@` in the composer to search molecular references.
 
-**Agent tools** — see [AGENT_TOOLS.md](AGENT_TOOLS.md). Nine tools (`molecular_load`, `molecular_get_state`, `molecular_select`, `molecular_focus`, `molecular_highlight`, `molecular_style`, `molecular_control`, `molecular_get_command`, and `molecular_surface`) operate on the same state the sidebar shows. If the viewer is closed, Agent commands request it for the current session and wait for the renderer to connect rather than reporting a fake success.
+**Agent tools** — see [AGENT_TOOLS.md](AGENT_TOOLS.md). Ten tools (`molecular_load`, `molecular_get_state`, `molecular_select`, `molecular_focus`, `molecular_highlight`, `molecular_style`, `molecular_control`, `molecular_get_command`, `molecular_surface`, and `molecular_trajectory`) operate on the same state the sidebar shows. If the viewer is closed, Agent commands request it for the current session and wait for the renderer to connect rather than reporting a fake success.
 
 **Appearance** — follows the DSH theme; an explicitly chosen export background still wins for exports.
 

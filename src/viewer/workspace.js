@@ -1,3 +1,4 @@
+import {pauseForCitation} from '../shared/citation-frame.js';
 import {Dashboard} from './dashboard.js';
 import {StyleControls} from './style-controls.js';
 import {ViewControls} from './view-controls.js';
@@ -63,7 +64,7 @@ export function Workspace({sessionId,adapter}){
   React.useEffect(()=>{grainRef.current=grain;engine.current?.setGranularity(grain);},[grain,ready]);
   React.useEffect(()=>{stateRef.current=state;},[state]);
   React.useEffect(()=>{
-    let disposed=false;const e=new MolEngine();e.readPotentialGrid=path=>api.current.getPotentialGrid(path);engine.current=e;setReady(false);lastRevision.current=-1;viewerId.current=id('viewer');
+    let disposed=false;const e=new MolEngine();e.readPotentialGrid=path=>api.current.getPotentialGrid(path);e.readTrajectoryData=(sid,path)=>api.current.getTrajectoryData(sid,path);engine.current=e;setReady(false);lastRevision.current=-1;viewerId.current=id('viewer');
     e.onError=err=>errorHandler.current(String(err?.message??err));
     e.onClear=()=>{if(!armedRef.current)run('clearSelection');};
     e.onPick=(residues,atoms,structureId,ev)=>{
@@ -80,10 +81,10 @@ export function Workspace({sessionId,adapter}){
     const tick=async()=>{
       const e=engine.current;if(!e||e.disposed||polling.current)return;polling.current=true;
       try{
-        const lease=await api.current.updateViewer(viewerId.current,{...(e.cameraRestored?{camera:e.plugin.canvas3d.camera.getSnapshot()}:{}),...(e.playTimer?{trajectory:{structureId:e.playingStructureId,frame:e.trajectories.get(e.playingStructureId)?.frame,frameCount:e.trajectories.get(e.playingStructureId)?.frameCount,playing:true}}:{}),capabilities:{measurements:MEASUREMENTS,image:true,video:typeof MediaRecorder!=='undefined'}});
-        e.viewerOwner=lease.owner;if(!lease.owner&&e.playTimer){clearInterval(e.playTimer);e.playTimer=null;}
+        const lease=await api.current.updateViewer(viewerId.current,{...(e.cameraRestored?{camera:e.plugin.canvas3d.camera.getSnapshot()}:{}),...(e.playback?.playing?{trajectory:{structureId:e.playingStructureId,frame:e.trajectories.get(e.playingStructureId)?.frame,frameCount:e.trajectories.get(e.playingStructureId)?.frameCount,playing:true,fps:e.playback.options.fps},measurementValues:[...e.measurementItems.values()].map(item=>item.record)}:{}),capabilities:{measurements:MEASUREMENTS,image:true,video:typeof MediaRecorder!=='undefined'}});
+        e.viewerOwner=lease.owner;if(!lease.owner&&e.playback?.playing){await e.playback.pause();}
         let next=await api.current.getState();
-        for(const s of next.structures){if(e.structures.has(s.structureId))continue;const data=await api.current.getStructureData(s.structureId);if(disposed)return;await e.load(s.structureId,data.data,data.format,s.title);if(lease.owner)await api.current.publishMetadata(viewerId.current,e.metadata(s.structureId));}
+        for(const s of next.structures){if(!e.structures.has(s.structureId)){const data=await api.current.getStructureData(s.structureId);if(disposed)return;await e.load(s.structureId,data.data,data.format,s.title);}if(lease.owner&&s.atomCount==null)await api.current.publishMetadata(viewerId.current,e.metadata(s.structureId));}
         next=await api.current.getState();if(disposed)return;
         await e.sync(localSelection.current!==undefined?{...next,selection:localSelection.current}:next);
         if(lease.owner)for(const pending of next.commands.filter(c=>c.status==='pending')){
@@ -109,7 +110,14 @@ export function Workspace({sessionId,adapter}){
   const openPanel=name=>{if(name==='style'){setStyleStructureId(sid);setTargetLayer(null);}setPanel(panel===name?null:name);if(narrow)setScene(false);setMenu(null);};
   const setStyle=patch=>run('setDisplay',{...(layer?{layerId:layer.id}:{structureId:styleStructure?.structureId??sid}),...patch});
   const onSequence=rs=>{if(!sid)return;if(armedRef.current){for(const r of rs)targetHandler.current(normalizeSelection({structureId:sid,kind:'residue',residues:[r]}));}else updateSelection(normalizeSelection({structureId:sid,kind:'residue',residues:rs}));};
-  const addChat=async()=>{try{await api.current.addToChat(stateRef.current.selection);notify('Added to the conversation input. Review it on the left before sending.');}catch(err){setError(err.message);}};
+  const addChat=async()=>{try{
+    const selection=stateRef.current.selection,target=selection?.structureId??stateRef.current.activeStructureId,e=engine.current;
+    const playing=e?.playback?.playing&&e.playingStructureId===target;
+    if(playing)await pauseForCitation(api.current,target);
+    if(e?.disposed)return;
+    await api.current.addToChat(selection);
+    notify(playing?'Paused playback and added the captured frame to the conversation input.':'Added to the conversation input. Review it on the left before sending.');
+  }catch(err){setError(err.message);}};
   const arm=()=>{points.current=[];setPointCount(0);armedRef.current=measureType;setArmed(measureType);notify('Pick the endpoints in order in the structure or sequence.');};
   const measurementText=m=>`${LABELS[m.type]}${m.value!=null?' '+Number(m.value).toFixed(2)+' '+m.unit:''}`;
   React.useEffect(()=>{if(state.structures.length)setPanel(p=>p==='load'?null:p);},[state.structures.length]);
@@ -140,5 +148,5 @@ export function Workspace({sessionId,adapter}){
       state.focus&&h('div',{className:'mw-interaction-note'},'Potential interactions · Mol* geometric predictions · 5 Å context'),
       sid&&h('div',{className:'mw-target'},h(Icon,{name:grain==='atom'?'atom':'select'}),h('div',{className:'mw-target-text'},h('div',{className:'mw-target-title'},armed?`${LABELS[armed]} · ${pointCount} points`:targetTitle),h('div',{className:'mw-target-detail'},targetDetail)),state.selection&&h(IButton,{icon:'focus',title:'Focus target',onClick:()=>run('focus')}),h(Button,{primary:true,disabled:!sid,onClick:addChat},state.selection?'Add to Chat':'Add structure to Chat')),
       menu&&h(ContextMenu,{position:menu,state,grain,setGrain,run,addChat,onClose:()=>setMenu(null),onLayer:layerId=>{setTargetLayer(layerId);setStyleStructureId([...state.tags,...state.layers].find(l=>l.id===layerId)?.selection.structureId);setPanel('style');if(narrow)setScene(false);}})),    h(Sequence,{residues:engine.current?.residues.get(sid)??[],selection:state.selection?.structureId===sid?state.selection:null,tags:state.tags,onSelect:onSequence,alignment:state.camera.alignment,onAlign:mobileId=>run('align',{referenceId:sid,mobileId}),structures:state.structures,activeStructureId:sid}),
-    h('footer',{className:'mw-status'+(error?' error':''),'role':error?'alert':'status'},h('span',{className:'grow'},error||(!ready?'Initializing Mol*…':busy?'Executing molecular command…':`${state.structures.length} Structure · ${active?.residueCount??0} residues · ${active?.atomCount??0} atoms`)),error?h('button',{title:'Dismiss error',onClick:()=>setError('')},'×'):h('span',null,`${state.viewer.connected?'● Connected':'○ Disconnected'} · v0.5`)),notice&&h('div',{className:'mw-toast',role:'status'},notice));
+    h('footer',{className:'mw-status'+(error?' error':''),'role':error?'alert':'status'},h('span',{className:'grow'},error||(!ready?'Initializing Mol*…':busy?'Executing molecular command…':`${state.structures.length} Structure · ${active?.residueCount??0} residues · ${active?.atomCount??0} atoms`)),error?h('button',{title:'Dismiss error',onClick:()=>setError('')},'×'):h('span',null,`${state.viewer.connected?'● Connected':'○ Disconnected'} · ${typeof __DSH_MOL_VERSION__ === 'string' ? 'v'+__DSH_MOL_VERSION__ : 'development'}`)),notice&&h('div',{className:'mw-toast',role:'status'},notice));
 }

@@ -4,9 +4,9 @@
 
 基于 [Mol*](https://github.com/molstar/molstar) 的 DeepSeek Harness 右侧栏原生 3D 分子查看器。侧栏和 Agent 共用同一个 Molecular Context Service：你用鼠标做的选区，就是 Agent 操作的对象；Agent 发出的命令，落回你正在看的那块画布。
 
-![碳酸酐酶 II 与乙酰唑胺的全局静电势预览](verification/viewer-electrostatics-3hs4.png)
+![PD-L1 与抗体识别界面](verification/pdl1-recognition.png)
 
-[人碳酸酐酶 II 与乙酰唑胺复合物（PDB 3HS4）](https://www.rcsb.org/structure/3HS4)。红、蓝分别表示完整蛋白表面上的负、正近似势。乙酰唑胺以金色球棍显示，锌离子为青绿色球。图示使用蛋白侧链近似模型。
+[PD-L1 / atezolizumab Fab（PDB 5X8L）](https://www.rcsb.org/structure/5X8L)。蓝色为抗原，紫色和金色为抗体重链与轻链，互作界面以球棍突出。新版包含柔和全抗原静电势预览和完整核糖体背景示例。
 
 ## 能做什么
 
@@ -113,3 +113,10 @@ verification/        验收说明与渲染截图
 客户端捆绑的库见[第三方许可证声明](THIRD_PARTY_NOTICES.txt)。
 
 [MIT](LICENSE)。基于 [Mol*](https://github.com/molstar/molstar)（MIT）、[zod](https://github.com/colinhacks/zod)（MIT）与 [React](https://react.dev)（MIT）。
+
+## 新版示例与轨迹
+
+- [PD-L1/抗体和完整核糖体示例](examples/README.md)：官方坐标、界面接触、柔和的完整抗原静电势预览、保留灰色环境的 A/P/E 位点。
+- [可直接发送给 DSH 的复现提示词](examples/DSH_PROMPTS.md)。
+- [DCD/XTC 轨迹导入与性能边界](docs/MD_TRAJECTORIES.md)：匹配拓扑、轻量显示、单次帧提交、暂停/拖帧，以及随帧变化的关键接触测量。
+- 公开图均直接从查看器导出；个人研究轨迹和带本机路径的原始证据不包含在公开包内。

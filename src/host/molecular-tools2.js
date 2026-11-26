@@ -47,7 +47,7 @@ export function registerMolecularTools(ctx, service) {
     text: ({ scope }) =>
       ctx.tools.get('molecular_get_state', scope) === undefined
         ? ''
-        : 'The Molecular Workspace tools operate a shared 3D structure viewer. Every selection carries a structureId and distinguishes auth (PDB) numbering from label numbering. Read current state with molecular_get_state before selecting. Mol* Viewer opens automatically for loading and renderer commands; the command waits for its canvas to connect. Keep this conversation visible in DSH. Use molecular_surface for molecular/SES, Gaussian, van der Waals or solvent-accessible surfaces, with color electrostatic and optional residues/radius for a local patch on the full surface. Prefer an existing matching APBS .dx referenced by the user; otherwise call with no dxPath for a labeled approximate protein preview, and report that method. Use molecular_highlight with persistent=true and colorValue for a visible named residue overlay without changing the base style. molecular_control supports exact atom/range selections, styles, tags/layers, six measurements, exports, trajectory and alignment; results are acknowledged by the viewer. Use wait=false for video or long exports, then molecular_get_command to poll. Never report a pending command as complete.',
+        : 'The Molecular Workspace tools operate a shared 3D structure viewer. Every selection carries a structureId and distinguishes auth (PDB) numbering from label numbering. Read current state with molecular_get_state before selecting. Mol* Viewer opens automatically for loading and renderer commands; the command waits for its canvas to connect. Keep this conversation visible in DSH. Use molecular_trajectory to attach bounded DCD/XTC coordinates to matching topology, then trajectory play/pause at 12 fps. Confirm atom order, strip solvent and stride big runs first. Use molecular_surface for molecular/SES, Gaussian, van der Waals or solvent-accessible surfaces, with color electrostatic and optional residues/radius for a local patch on the full surface. Prefer an existing matching APBS .dx referenced by the user; otherwise call with no dxPath for a labeled approximate protein preview, and report that method. Use molecular_highlight with persistent=true and colorValue for a visible named residue overlay without changing the base style. molecular_control supports exact atom/range selections, styles, tags/layers, six measurements, exports, trajectory and alignment; results are acknowledged by the viewer. Use wait=false for video or long exports, then molecular_get_command to poll. Never report a pending command as complete.',
   });
 
   try {
@@ -134,7 +134,7 @@ export function registerMolecularTools(ctx, service) {
   try {
     ctx.tools.register(defineTool({
       name: 'molecular_focus',
-      description: 'Focus (zoom-to) a selection in the Molecular Workspace viewer.',
+      description: 'Zoom to a selection and show detailed residues, the 5 Angstrom environment, and inferred contacts. For a clean single-contact MD scene, keep selection/focus cleared, use persistent colored layers, one measured distance, and molecular_control camera mode=view to frame the scene.',
       parameters: selectionParams(),
       output: {
         schema: looseObjectSchema,
@@ -183,7 +183,7 @@ export function registerMolecularTools(ctx, service) {
   try {
     ctx.tools.register(defineTool({
       name:'molecular_control',
-      description:'Execute a Molecular Workspace operation in the live sidebar and return its actual result. args is an action-specific JSON object. Targets: structureId plus chainId/start/end/atomName, or selection from current state. Measurement: {type:"distance", points:[{structureId:"1",chainId:"A",start:10,atomName:"CA"},{structureId:"1",chainId:"A",start:20,atomName:"CA"}]}. Display: {structureId:"1",representation:"ball-and-stick",color:"element-symbol",opacity:1}. getSequence/getStructureInfo inspect parsed data. Tags/layers use name,colorValue and target; deletion uses id. Export: width,height,format,path (relative to workspace); trajectory: mode frame/play/pause/step and frame/fps; align: referenceId,mobileId,referenceChain,mobileChain. The sidebar opens automatically. Use wait=false for long operations, then poll molecular_get_command.',
+      description:'Execute a Molecular Workspace operation in the live sidebar and return its actual result. args is an action-specific JSON object. Targets: structureId plus chainId/start/end/atomName, or selection from current state. Measurement: {type:"distance", points:[{structureId:"1",chainId:"A",start:10,atomName:"CA"},{structureId:"1",chainId:"A",start:20,atomName:"CA"}]}. Display: {structureId:"1",representation:"ball-and-stick",color:"element-symbol",opacity:1}. getStructureInfo returns chain summaries; getSequence retrieves sequences on demand, keeping large ribosome state responses compact. Tags/layers use name,colorValue and target; deletion uses id. Export: width,height,format,path (relative to workspace); trajectory: mode frame/play/pause/step and frame/fps; align: referenceId,mobileId,referenceChain,mobileChain. Camera: mode=view uses target:[x,y,z], direction:[x,y,z], up:[x,y,z], radius in Angstrom; it changes the camera without adding focus contacts. mode=focus uses the standard structureId/chainId/start/end or selection target. clearSelection removes the automatic focus environment and contact network. setVisibility kind is structure, layer, tag or measurement, never a Molstar component. The sidebar opens automatically. Use wait=false for long operations, then poll molecular_get_command.',
       parameters:{action:{type:'string',enum:ACTIONS,required:true},args:{type:'json',description:'Action-specific JSON object; defaults to {}.'},commandId:{type:'string',description:'Optional idempotency key; reuse only for the same request.'},wait:{type:'boolean',description:'Default true. false returns a queued command; poll molecular_get_command.'}},
       output:{schema:looseObjectSchema,render:(_args,value)=>[{type:'text',text:JSON.stringify(value,null,2)}]},
       isConcurrencySafe:()=>false,
@@ -251,6 +251,17 @@ export function registerMolecularTools(ctx, service) {
     }));
     console.info('[molecular] tool registered: molecular_surface');
   } catch(err){console.error('[molecular] tool registration failed: molecular_surface',err);}
+  try {
+    ctx.tools.register(defineTool({
+      name:'molecular_trajectory',
+      description:'Attach a local DCD/XTC trajectory to a loaded matching PDB/mmCIF topology. The topology and coordinates must have identical atoms in identical order. Attach BEFORE styling or measuring: attachment replaces the model, clears its old layers/tags/measurements and hidden selections, and starts a lightweight cartoon. Recreate study overlays after attachment. Playback uses serial frame commits. Strip solvent and stride large runs first. Use molecular_control trajectory play/pause/frame for controls.',
+      parameters:{structureId:{type:'string',required:true},path:{type:'string',required:true},atomOrderConfirmed:{type:'boolean',required:true,description:'Confirm exact topology/trajectory atom-order correspondence.'}},
+      output:{schema:looseObjectSchema,render:(_args,value)=>[{type:'text',text:JSON.stringify(value,null,2)}]},
+      isConcurrencySafe:()=>false,
+      async execute(args,exec){return {status:'succeeded',result:await service.executeCommand(exec.agent.session.id,{action:'loadTrajectory',args},exec.signal)};}
+    }));
+    console.info('[molecular] tool registered: molecular_trajectory');
+  }catch(error){console.error('[molecular] tool registration failed: molecular_trajectory',error);}
   try {
     ctx.tools.register(defineTool({
       name:'molecular_get_command',description:'Read a queued Molecular Workspace command. succeeded has result; failed/timed_out/cancelled has error; pending/running is still incomplete.',

@@ -28,6 +28,7 @@ for (const [entry, filename, production] of [
     bundle: true,
     format: production ? 'cjs' : 'iife',
     platform: 'browser',
+    define: { __DSH_MOL_VERSION__: JSON.stringify(pkg.version) },
     nodePaths: [MOLSTAR_NODE_MODULES],
     external: production ? ['react', 'react-dom', 'react/jsx-runtime'] : [],
     write: false,

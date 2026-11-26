@@ -3,6 +3,13 @@
 Notable changes to this plugin. The project is pre-1.0: minor versions may
 change behaviour, and the Agent tool surface is the most likely thing to move.
 
+## 0.6.0-rc.1 (unpublished candidate)
+
+- Add a separately registered molecular_trajectory tool for matching DCD/XTC coordinates, bounded allocation, stable molecular identity across frames and serialized playback.
+- Add model-update statistics, responsive pause, source-hash restoration, missing-file recovery and MD state cleanup.
+- Add official-coordinate PD-L1/atezolizumab and full-context 3JAH example preparation, portable camera framing and DSH prompts.
+- Keep local research trajectories outside the public source and package. New example images await visual review.
+
 ## 0.5.0
 
 - Added molecular_surface for four surface geometries and whole or local electrostatic coloring. It samples coordinate-matched APBS OpenDX at mesh vertices or creates a labeled side-chain preview.

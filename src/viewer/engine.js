@@ -20,6 +20,7 @@ import { executeOperation, syncObjects } from './operations.js';
 import { failure, clone, validateDisplay,REPRESENTATION_OPTIONS } from '../shared/model.js';
 import {representationParams,representationColorParams,presetRepresentation} from './representation-style.js';
 import { chainsOf, resolveTarget } from './targets.js';
+import {attachMdTrajectory,decodeTrajectoryBase64} from './md-trajectory.js';
 import { registerSurfaceThemes } from './surface-layer.js';
 import { registerKtTheme } from './kt-theme.js';
 import { registerElectrostaticTheme, assignCharges, computePotentials, setActivePotential, potentialStats } from './electrostatics.js';
@@ -114,7 +115,7 @@ export class MolEngine {
     this.structures.set(structureId, structure);
     this.structureRefs.set(structureId, selector.ref);
     this.residues.set(structureId,extractResidues(structure));
-    this.sources.set(structureId,{data,format,title});
+    this.sources.set(structureId,{data,format,title,rawRef:parsed.ref});
     this.models.set(structureId,result.model.ref);
     this.trajectories.set(structureId,{ref:trajectory.ref,frameCount:trajectory.obj?.data?.frameCount??1,frame:0});
     return { structure, residues: this.residues.get(structureId) };
@@ -314,6 +315,7 @@ export class MolEngine {
 
   dispose() {
     this.disposed = true;
+    this.playback?.dispose();
     this.resizeObserver?.disconnect();
     this.measureVersion++;
     if (this.clickSub) { this.clickSub.unsubscribe(); this.clickSub = null; }
@@ -321,20 +323,44 @@ export class MolEngine {
     this.structures.clear();
     this.structureRefs.clear();
     this.surfaceFields?.clear();
-    clearInterval(this.playTimer);
+
+
   }
 
   resolveTarget(args,state){return resolveTarget(this,args,state);}
   async execute(command,state){return executeOperation(this,command,state);}
   metadata(structureId){
     const s=this.structures.get(structureId),residues=this.residues.get(structureId)??[];
-    return {structureId,atomCount:s?.elementCount??0,residueCount:residues.length,chainCount:chainsOf(residues).length,modelCount:s?.models?.length??0,frameCount:this.trajectories.get(structureId)?.frameCount??1,chains:chainsOf(residues).map(({residues,...chain})=>chain)};
+    return {structureId,atomCount:s?.elementCount??0,residueCount:residues.length,chainCount:chainsOf(residues).length,modelCount:s?.models?.length??0,frameCount:this.trajectories.get(structureId)?.frameCount??1,chains:chainsOf(residues).map(({residues,sequence,...chain})=>chain)};
+  }
+  async removeLoadedStructure(sid){
+    if(this.playingStructureId===sid)await this.playback?.pause();
+    const tr=this.trajectories.get(sid),node=this.structureNode(sid),update=this.plugin.state.data.build();
+    if(tr?.md){update.delete(tr.ref);if(tr.rawRef)update.delete(tr.rawRef);if(!this.sources.get(sid)?.rawRef&&tr.baseModelRef)update.delete(tr.baseModelRef);}
+    else if(node)update.delete(node.cell.transform.ref);
+    if(this.sources.get(sid)?.rawRef)update.delete(this.sources.get(sid).rawRef);
+    await update.commit();this.failedMdRestores?.delete(sid);
+    for(const map of [this.structures,this.residues,this.sources,this.models,this.trajectories,this.structureRefs,this.displayCache])map.delete(sid);
   }
   async sync(state){
     this.stateCache=state;
-    for(const [sid] of this.structures)if(!state.structures.some(s=>s.structureId===sid)){
-      const node=this.structureNode(sid);if(node)await this.plugin.state.data.build().delete(node.cell.transform.ref).commit();
-      for(const map of [this.structures,this.residues,this.sources,this.models,this.trajectories,this.structureRefs,this.displayCache])map.delete(sid);
+    for(const [sid] of this.structures)if(!state.structures.some(s=>s.structureId===sid))await this.removeLoadedStructure(sid);
+    for(const ref of state.structures){
+      if(!ref.mdTrajectory||!this.structures.has(ref.structureId))continue;
+      const current=this.trajectories.get(ref.structureId);
+      if(current?.sourceHash===ref.mdTrajectory.sha256)continue;
+      this.failedMdRestores??=new Map();
+      if(this.failedMdRestores.get(ref.structureId)===ref.mdTrajectory.sha256)continue;
+      try{
+        await this.playback?.pause();
+        const payload=await this.readTrajectoryData(ref.structureId,ref.mdTrajectory.path);
+        await attachMdTrajectory(this,{structureId:ref.structureId,data:await decodeTrajectoryBase64(payload.data),format:payload.format,title:payload.title,atomOrderConfirmed:true});
+        this.trajectories.get(ref.structureId).sourceHash=payload.sha256;
+        this.failedMdRestores.delete(ref.structureId);
+      }catch(err){
+        this.failedMdRestores.set(ref.structureId,ref.mdTrajectory.sha256);
+        this.onError?.(new Error('Cannot restore MD coordinates: '+err.message+' Reattach a matching trajectory to recover.'));
+      }
     }
     await restoreView(this,state);
     for(const s of state.structures){

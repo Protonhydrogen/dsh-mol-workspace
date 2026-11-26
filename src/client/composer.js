@@ -1,3 +1,4 @@
+import {frameCaption} from '../shared/citation-frame.js';
 import {contextText} from '../shared/citations.js';
 export function insertMolecularCitation(ctx,sessionId,context,label){
  const binding=ctx.get('sessions').binding(sessionId);if(!binding)throw new Error('The conversation is not open');
@@ -8,10 +9,11 @@ export function insertMolecularCitation(ctx,sessionId,context,label){
  return {ok:true,delivery:'composer',context};
 }
 export function selectionCitationLabel(context){
- const s=context.selection;if(!s)return context.structure.title;
+ const title=context.structure.title+frameCaption(context);
+ const s=context.selection;if(!s)return title;
  const refs=s.kind==='atom'?s.atoms:s.residues;
- if(s.kind==='chain')return `${context.structure.title} · Chain ${s.chainIds.join(', ')}`;
- if(!refs?.length)return context.structure.title;
+ if(s.kind==='chain')return `${title} · Chain ${s.chainIds.join(', ')}`;
+ if(!refs?.length)return title;
  const a=refs[0],b=refs.at(-1),range=refs.length>1?`${a.authAsymId}:${a.authSeqId}${a.insCode??''}–${b.authSeqId}${b.insCode??''}`:`${a.authAsymId}:${a.authSeqId}${a.insCode??''}`;
- return `${context.structure.title} · ${range}${s.kind==='atom'?' '+(a.authAtomId??a.labelAtomId):' · '+refs.length+' residues'}`;
+ return `${title} · ${range}${s.kind==='atom'?' '+(a.authAtomId??a.labelAtomId):' · '+refs.length+' residues'}`;
 }

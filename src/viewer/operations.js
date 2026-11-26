@@ -1,4 +1,7 @@
+import {measurementPoints,measurementSignature,addTrackingMeasurement} from './measurement-tracking.js';
 import { buildSurfaceRecord, createSurfaceVisual, resolveSurfaceSite } from './surface-layer.js';
+import {attachMdTrajectory,decodeTrajectoryBase64} from './md-trajectory.js';
+import { setCameraView } from './camera-view.js';
 import {inspectInteractions} from './interactions.js';
 import {representationParams,presetRepresentation,representationColorParams} from './representation-style.js';
 import {applyClipping,DEFAULT_CLIPPING} from './view-settings.js';
@@ -10,7 +13,6 @@ import { checkColor, clone, failure, id, validateDisplay } from '../shared/model
 import { normalizeSelection } from '../shared/selection.js';
 import { atomPosition, atomsFromLoci, extractResidues, residuesFromLoci } from './selection.js';
 import { chainsOf } from './targets.js';
-import { measurementGeometry } from './measurements.js';
 import { exportImage, exportStructure, trajectory, alignStructures, exportVideo } from './output.js';
 
 /** Surface and electrostatics options that a layer must carry into its record. */
@@ -37,7 +39,8 @@ export function buildLayerRecord(a,selection,makeId){
 export async function createLayer(e,record){
   const selection=e.resolveTarget({selection:record.selection,structureId:record.selection.structureId},e.stateCache);
   const loci=e.lociFor(selection);const ref=e.structureRefs.get(selection.structureId);
-  const c=await e.plugin.builders.structure.tryCreateComponent(ref,{type:{name:'bundle',params:StructureElement.Bundle.fromLoci(loci)},nullIfEmpty:true,label:record.name},record.id);
+  const type=e.trajectories.get(selection.structureId)?.md?{name:'expression',params:StructureElement.Loci.toExpression(loci)}:{name:'bundle',params:StructureElement.Bundle.fromLoci(loci)};
+  const c=await e.plugin.builders.structure.tryCreateComponent(ref,{type,nullIfEmpty:true,label:record.name},record.id);
   if(!c)throw failure('TARGET_NOT_FOUND','Layer selection is empty');
   const style=record.display??{};const color=record.color??style.colorValue??'#8b5cf6';checkColor(color);
   // Reject out-of-range surface / electrostatics values here rather than letting
@@ -61,25 +64,14 @@ export async function removeVisual(e,map,itemId){
   if(map===e.layerItems)e.surfaceFields?.delete(itemId);
 }
 
-function pointsFor(e,record){
-  const selections=record.points;const locis=[],positions=[],actual=[];
-  for(const sel of selections){
-    const loci=record.type==='orientation'?e.lociFor(sel):e.pointLoci(sel);
-    if(!loci||StructureElement.Loci.isEmpty(loci))throw failure('TARGET_NOT_FOUND','Measurement endpoint is missing');
-    locis.push(loci);
-    StructureElement.Loci.forEachLocation(loci,loc=>{const p=atomPosition(loc);if(!p)throw failure('TARGET_NOT_FOUND','No atomic coordinates');positions.push([p.x,p.y,p.z]);});
-    actual.push({atom:atomsFromLoci(loci)[0],structureId:sel.structureId,position:positions.at(-1)});
-  }
-  return {locis,positions,actual};
-}
 export async function createMeasurement(e,record){
-  const {locis,positions,actual}=pointsFor(e,record);
-  const geometry=measurementGeometry(record.type,positions);
+  const {locis,geometry,actual}=measurementPoints(e,record);
   const style=record.style??{};validateDisplay({opacity:style.opacity});if(style.geometry&&!['box','axes','ellipsoid'].includes(style.geometry))throw failure('INVALID_ARGUMENT','Orientation geometry must be box, axes or ellipsoid');const color=checkColor(style.color??'#a78bfa');
   const mgr=e.plugin.managers.structure.measurement;
   let result;
   const options={lineParams:{linesColor:color},labelParams:{textColor:color,customText:record.text??''}};
-  if(record.type==='distance')result=await mgr.addDistance(...locis,options);
+  if(record.points.some(p=>e.trajectories.get(p.structureId)?.md))result=await addTrackingMeasurement(e,record,locis,options);
+  else if(record.type==='distance')result=await mgr.addDistance(...locis,options);
   else if(record.type==='angle')result=await mgr.addAngle(...locis,options);
   else if(record.type==='dihedral')result=await mgr.addDihedral(...locis,options);
   else if(record.type==='label')result=await mgr.addLabel(locis[0],options);
@@ -89,7 +81,7 @@ export async function createMeasurement(e,record){
   await e.plugin.state.data.build().to(result.representation.ref).update(old=>({...old,color,linesColor:color,textColor:color,sectorColor:color,alpha:style.opacity??(record.type==='plane'?0.35:1),...(record.type==='orientation'?{visuals:[style.geometry??'box']}:{}),...(record.text?{customText:record.text}:{})})).commit();
   setSubtreeVisibility(e.plugin.state.data,result.selection.ref,record.visible===false);
   const completed={...record,...geometry,actualPoints:actual};
-  e.measurementItems.set(record.id,{ref:result.selection.ref,representationRef:result.representation.ref,record:completed,signature:JSON.stringify(record)});
+  e.measurementItems.set(record.id,{ref:result.selection.ref,representationRef:result.representation.ref,record:completed,signature:measurementSignature(record)});
   return completed;
 }
 
@@ -123,7 +115,7 @@ export async function syncObjects(e,state){
   for(const [key] of e.measurementItems)if(!(state.measurements??[]).some(m=>m.id===key))await removeVisual(e,e.measurementItems,key);
   for(const m of state.measurements??[]){
     const item=e.measurementItems.get(m.id);
-    if(!item||!e.plugin.state.data.cells.has(item.ref)||JSON.stringify(item.record)!==JSON.stringify(m)){
+    if(!item||!e.plugin.state.data.cells.has(item.ref)||item.signature!==measurementSignature(m)){
       await removeVisual(e,e.measurementItems,m.id);await createMeasurement(e,m);
     }
   }
@@ -152,6 +144,22 @@ export async function executeOperation(e,command,state){
     await e.overview();
     return {value:{cleared:true,overview:true},patch:{selection:null,focus:null,highlight:null,camera:{...state.camera,clipping:DEFAULT_CLIPPING}}};
   }
+  if(action==='loadTrajectory'){
+    await e.playback?.pause();
+    if(a.atomOrderConfirmed!==true)throw failure('INVALID_ARGUMENT','Confirm the topology and trajectory share the exact atom order');
+    const payload=await e.readTrajectoryData(sid,a.path);
+    const data=await decodeTrajectoryBase64(payload.data);
+    const result=await attachMdTrajectory(e,{structureId:sid,data,format:payload.format,title:payload.title,atomOrderConfirmed:true});
+    e.trajectories.get(sid).sourceHash=payload.sha256;
+    const mdTrajectory={path:a.path,sha256:payload.sha256,title:payload.title,format:payload.format};
+    const prior=state.structures.find(s=>s.structureId===sid);
+    e.restoredAlignment=undefined;
+    return {value:{...result,mdTrajectory,sceneReset:true,cleared:{layers:state.layers.filter(l=>l.selection.structureId===sid).length,tags:state.tags.filter(l=>l.selection.structureId===sid).length,measurements:state.measurements.filter(m=>m.points.some(p=>p.structureId===sid)).length}},patch:{selection:null,focus:null,highlight:null,hiddenSelections:(state.hiddenSelections??[]).filter(s=>s.structureId!==sid),
+      layers:state.layers.filter(l=>l.selection.structureId!==sid),tags:state.tags.filter(l=>l.selection.structureId!==sid),
+      measurements:state.measurements.filter(m=>!m.points.some(p=>p.structureId===sid)),
+      structureUpdates:[{...e.metadata(sid),mdTrajectory,display:{...prior.display,representations:['cartoon'],quality:'low'}}],
+      trajectory:{structureId:sid,frame:0,frameCount:result.frameCount,playing:false}}};
+  }
   if(action==='renderSurface'){
     const record=buildSurfaceRecord(e,sid,a,state);
     const value=await createSurfaceVisual(e,record,state);
@@ -172,6 +180,7 @@ export async function executeOperation(e,command,state){
     await syncObjects(e,state);return {value:{structures:updates},patch:{structureUpdates:updates}};
   }
   if(action==='setVisibility'){
+    if(a.kind!=null&&!['structure','layer','tag','measurement'].includes(a.kind))throw failure('INVALID_ARGUMENT','Visibility kind must be structure, layer, tag or measurement. Use clearSelection to remove automatic focus components.');
     if(a.kind==='tag'||a.kind==='layer'||a.kind==='measurement'){
       const key=a.kind==='tag'?'tags':a.kind==='layer'?'layers':'measurements';const records=clone(state[key]??[]);const item=records.find(v=>v.id===a.id);if(!item)throw failure('TARGET_NOT_FOUND','Scene object not found');item.visible=a.visible!==false;
       const map=a.kind==='measurement'?e.measurementItems:e.layerItems;const visual=map.get(item.id);if(visual?.ref)setSubtreeVisibility(e.plugin.state.data,visual.ref,!item.visible||state.structures.find(s=>s.structureId===item.selection?.structureId)?.display?.visible===false);
@@ -222,11 +231,12 @@ export async function executeOperation(e,command,state){
     await removeVisual(e,e.measurementItems,item.id);const updated=await createMeasurement(e,item);return {value:updated,patch:{measurements:records.map(m=>m.id===updated.id?updated:m)}};
   }
   if(action==='camera'){
-    if(a.mode==='focus'){const selection=e.resolveTarget(a,state);await e.focus(selection);}
+    if(a.mode==='view'){const view=setCameraView(e,a);return {value:view,patch:{camera:{...state.camera,view,snapshot:e.plugin.canvas3d.camera.getSnapshot()}}};}
+    if(a.mode==='focus'){if(a.target!=null)throw failure('INVALID_ARGUMENT','Camera focus uses structureId/chainId/start/end or selection. Cartesian target arrays require mode=view with direction, up and radius.');const selection=e.resolveTarget(a,state);await e.focus(selection);}
     else if(a.mode==='reset'){await e.overview();return {value:{mode:'reset',overview:true},patch:{selection:null,focus:null,highlight:null,camera:{...state.camera,clipping:DEFAULT_CLIPPING}}};}
     else if(a.mode==='clipping'){const clipping={...DEFAULT_CLIPPING,...state.camera?.clipping,...a};for(const key of ['mode','structureId'])delete clipping[key];applyClipping(e,clipping);return {value:{clipping},patch:{camera:{...state.camera,clipping}}};}
     else if(a.mode==='spin')e.plugin.canvas3d.setProps({trackball:{animate:a.enabled===false?{name:'off',params:{}}:{name:'spin',params:{speed:Number(a.speed??0.1),axis:[0,1,0]}}}});
-    else throw failure('INVALID_ARGUMENT','Camera mode must be reset, focus, clipping or spin');
+    else throw failure('INVALID_ARGUMENT','Camera mode must be view, reset, focus, clipping or spin. view requires target, direction, up and radius');
     return {value:{mode:a.mode,enabled:a.enabled!==false},patch:{camera:{...state.camera,...a}}};
   }
   if(action==='previewImage')return exportImage(e,{...a,width:640,height:360},state);
@@ -249,8 +259,8 @@ export async function executeOperation(e,command,state){
     return {value:{selection,radius,residueCount:rs.length},patch:{selection}};
   }
   if(action==='removeStructure'){
-    const node=e.structureNode(sid);if(!node)throw failure('TARGET_NOT_FOUND','Structure not found');await e.plugin.state.data.build().delete(node.cell.transform.ref).commit();e.structures.delete(sid);e.residues.delete(sid);e.structureRefs.delete(sid);
-    return {value:{removed:sid},patch:{removedStructures:[sid],selection:null,activeStructureId:state.structures.find(s=>s.structureId!==sid)?.structureId??null,tags:state.tags.filter(t=>t.selection.structureId!==sid),layers:state.layers.filter(t=>t.selection.structureId!==sid),measurements:state.measurements.filter(m=>!m.points.some(p=>p.structureId===sid))}};
+    if(!e.structures.has(sid))throw failure('TARGET_NOT_FOUND','Structure not found');await e.removeLoadedStructure(sid);
+    return {value:{removed:sid},patch:{removedStructures:[sid],selection:null,highlight:state.highlight?.structureId===sid?null:state.highlight,trajectory:state.trajectory?.structureId===sid?{}:state.trajectory,activeStructureId:state.structures.find(s=>s.structureId!==sid)?.structureId??null,tags:state.tags.filter(t=>t.selection.structureId!==sid),layers:state.layers.filter(t=>t.selection.structureId!==sid),measurements:state.measurements.filter(m=>!m.points.some(p=>p.structureId===sid))}};
   }
   throw failure('INVALID_ARGUMENT',`Unknown operation: ${action}`);
 }

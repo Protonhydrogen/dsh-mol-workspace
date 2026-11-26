@@ -27,6 +27,7 @@ const result = await build({
   bundle: true,
   format: 'cjs',
   platform: 'browser',
+    define: { __DSH_MOL_VERSION__: JSON.stringify(pkg.version) },
   nodePaths: [MOLSTAR_NODE_MODULES],
   external: ['react', 'react-dom', 'react/jsx-runtime'],
   write: false,
