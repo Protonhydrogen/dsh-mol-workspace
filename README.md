@@ -7,6 +7,10 @@ A native 3D molecular viewer for the [DeepSeek Harness](https://github.com/deeps
 
 [中文说明](README.zh-CN.md)
 
+![Native DSH conversation and Mol* Viewer](verification/dsh-ribosome-demo.png)
+
+A real DSH conversation styles the loaded 3JAH ribosome with a natural-language request: 60S in soft blue, 40S in pale peach, and highlighted eRF1/tRNAs. The workspace breadcrumb is hidden for privacy. No camera coordinates are supplied in the visible request.
+
 ![PD-L1 recognition by atezolizumab](verification/pdl1-recognition.png)
 
 [PD-L1 / atezolizumab Fab (PDB 5X8L)](https://www.rcsb.org/structure/5X8L): antigen in steel blue, heavy chain in plum, light chain in gold, and the measured interface as sticks.

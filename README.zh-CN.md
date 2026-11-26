@@ -1,5 +1,9 @@
 # DSH Molecular Workspace
 
+![DSH 对话与 Mol* Viewer 侧栏](verification/dsh-ribosome-demo.png)
+
+真实 DSH 界面：通过自然语言给已加载的 3JAH 核糖体着色，60S 为柔和蓝色、40S 为浅桃色，eRF1 与两条 tRNA 保持高亮。可见请求没有相机坐标；截图隐藏了工作区名称。
+
 [English](README.md) · [MIT 许可证](LICENSE)
 
 基于 [Mol*](https://github.com/molstar/molstar) 的 DeepSeek Harness 右侧栏原生 3D 分子查看器。侧栏和 Agent 共用同一个 Molecular Context Service：你用鼠标做的选区，就是 Agent 操作的对象；Agent 发出的命令，落回你正在看的那块画布。

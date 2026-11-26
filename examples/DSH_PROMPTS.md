@@ -39,3 +39,10 @@ Paste into DSH after preparing the example files, replacing EXAMPLE_DATA with th
 ## One-contact MD research view
 
 > Focus the MD display on one scientifically relevant residue pair that I specify, using exact atom identities and their native chain/residue numbering. Show the two complete residues in contrasting colors and track a single dashed atom-to-atom distance while the trajectory plays. Keep their nearby molecular environment visible in neutral gray with moderate transparency and thin geometry. Use a frozen neighborhood selection across frames so atoms do not pop in and out. Frame with camera mode=view and keep focus/selection cleared so the general focus interaction network does not add extra contacts. Include the complete highlighted residues, not only CA/P trace atoms. Start at 12 viewing frames per second, keep surfaces off, and avoid adding a network of competing contact lines. Confirm that both the viewport label and Agent-readable distance follow frame changes, then pause on a requested frame and export it. Treat an atom distance as a geometric measurement; infer a hydrogen bond only after checking appropriate donor/acceptor identities and direction. Preserve local trajectory privacy.
+## Natural-language native-app demonstration
+
+For an already loaded 3JAH scene with highlighted eRF1 and P/E tRNAs:
+
+> Show the large ribosomal subunit in soft blue and the small subunit in pale peach. Keep eRF1 and both tRNAs highlighted, with the whole ribosome visible at this angle. Reply only with a short color legend.
+
+Use PDB entity annotations to identify 40S and 60S chains before styling them. 3JAH is eukaryotic 80S; 30S/50S names would be incorrect. Clear temporary selection/contact overlays before capturing the app. The screenshot illustrates a real style request for a prepared scene, rather than claiming a single prompt performed the whole data-preparation workflow.
