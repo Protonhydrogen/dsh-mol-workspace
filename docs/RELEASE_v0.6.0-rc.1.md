@@ -14,4 +14,4 @@ The import bounds are 64 MiB, 100000 atoms, 1000 frames and 5000000 atom-frames.
 
 Validation: complete local Node regression suite, native Mol* state-tree tests, and real-coordinate browser/tool-bridge playback and export checks. Native DSH installation requires a full restart; source-level and browser validation do not establish every DSH deployment configuration.
 
-Public figures use official PDB coordinates. Local research trajectories, their videos and raw export evidence containing machine paths are excluded. Electrostatic examples use a labeled screened side-chain approximation rather than an APBS calculation; matching APBS OpenDX input remains supported.
+Antibody and ribosome figures use official PDB coordinates. Selected viewer-only MD images and video are shared with owner approval; raw research trajectories and export evidence containing machine paths remain excluded. Electrostatic examples use a labeled screened side-chain approximation rather than an APBS calculation; matching APBS OpenDX input remains supported.

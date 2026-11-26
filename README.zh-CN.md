@@ -30,11 +30,17 @@
 - **Agent**：9 个工具，详见 [AGENT_TOOLS.md](AGENT_TOOLS.md)。侧栏关闭时，Agent 的加载与视觉命令会为当前会话请求打开并等待渲染器连接，不会谎报成功。
 - **外观**：跟随 DSH 主题；显式设置的导出背景优先。
 
-## 截图
+## MD：在环境中观察单一关键互作
 
-| 聚焦与 5 Å 环境 | 样式预设 |
+这个 60 帧 MD 观察子集突出两枚完整残基，只跟踪一条原子间距离。周围结构保留为半透明灰色，便于观察运动，避免多条接触线争夺注意力。
+
+| 第 1 帧 · 4.89 Å | 第 34 帧 · 3.79 Å |
 |---|---|
-| ![聚焦](verification/viewer-focus.png) | ![样式](verification/viewer-style.png) |
+| ![第 1 帧的 MD 接触](verification/md-contact-frame-1.png) | ![第 34 帧的 MD 接触](verification/md-contact-frame-34.png) |
+
+[观看 MD 播放视频（WebM）](https://github.com/Protonhydrogen/dsh-mol-workspace/releases/download/v0.6.0-rc.1/md-single-contact.webm) · [下载视频](verification/md-single-contact.webm)
+
+图片和视频使用真实模拟的采样坐标，虚线标注几何距离。本次只公开这些查看器导出媒体；原始拓扑、轨迹和包含本地路径的证据文件仍保留在本地。
 
 ## 安装
 

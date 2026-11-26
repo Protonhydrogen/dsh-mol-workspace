@@ -74,11 +74,17 @@ The antigen carries a full, softly colored molecular surface. This example uses 
 
 **Appearance** — follows the DSH theme; an explicitly chosen export background still wins for exports.
 
-## Screenshots
+## MD: one contact in context
 
-| Focus with 5 Å neighbourhood | Style presets |
+A 60-frame MD viewing subset highlights two complete residues and tracks one atom-to-atom distance. The nearby environment remains visible in translucent gray, making the motion easy to follow without a competing contact network.
+
+| Frame 1 · 4.89 Å | Frame 34 · 3.79 Å |
 |---|---|
-| ![Focus](verification/viewer-focus.png) | ![Style](verification/viewer-style.png) |
+| ![MD contact at frame 1](verification/md-contact-frame-1.png) | ![MD contact at frame 34](verification/md-contact-frame-34.png) |
+
+[Watch MD playback (WebM)](https://github.com/Protonhydrogen/dsh-mol-workspace/releases/download/v0.6.0-rc.1/md-single-contact.webm) · [Download video](verification/md-single-contact.webm)
+
+The images and video show sampled simulation coordinates; the dashed annotation is a geometric distance. Only these viewer exports are shared; the source topology, trajectory and path-bearing evidence remain private.
 
 
 ## Requirements

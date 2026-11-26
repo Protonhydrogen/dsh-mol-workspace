@@ -102,5 +102,5 @@
       "cameraRecipe": "../examples/3jah-camera.json"
     }
   ],
-  "privacy": "Viewer-only scientific PNGs plus one reviewed native DSH demonstration. Workspace breadcrumb hidden in the app capture; no local paths, other task lists, account identity or private MD data."
+  "privacy": "Viewer-only scientific PNGs plus one reviewed native DSH demonstration. Workspace breadcrumb hidden in the app capture; no local paths, other task lists, account identity or raw private MD inputs."
 }
