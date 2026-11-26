@@ -1,0 +1,4 @@
+- insert:
+    - id: dsh-mol-workspace
+      name: 'dsh-mol-workspace'
+      config: {}

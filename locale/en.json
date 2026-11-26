@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Molecular Workspace",
+    "description": "Native Mol* 3D structure viewer in the right sidebar, with a shared molecular context for UI actions and Agent tools."
+  }
+}
