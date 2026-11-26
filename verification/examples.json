@@ -94,11 +94,12 @@
         "color": "gray",
         "opacity": {
           "global": 0.1,
-          "sites": 0.07
+          "sites": 0.1
         },
         "includes": "ribosomal protein/RNA, ABCE1, nascent chain, RACK1 and deposited nonpolymer coordinates"
       },
-      "orientation": "180 degree in-plane rotation; A, P, E left to right; native coordinates"
+      "orientation": "User-approved orientation: E-tRNA left, P-tRNA center, A-site eRF1 right; native coordinates.",
+      "cameraRecipe": "../examples/3jah-camera.json"
     }
   ],
   "privacy": "Viewer-only PNG exports; no desktop screenshots, local paths, session IDs or private MD data"

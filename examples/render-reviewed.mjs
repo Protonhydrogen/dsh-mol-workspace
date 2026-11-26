@@ -14,7 +14,8 @@ const meta=JSON.parse(await readFile(join(root,'analysis.json'),'utf8')),images=
 await mkdir(join(root,'review'),{recursive:true});
 async function view(name,target,direction,up,radius){
  await command('camera',{mode:'view',target,direction,up,radius});
- const result=await command('exportImage',{width:1400,height:1050,format:'png',background:'white',path:'review/'+name+'-'+Date.now()+'.png'});
+ if(choice!=='antibody')await command('camera',{mode:'clipping',radius:0,far:false,minNear:1,fog:name==='3jah-global-context'?15:0});
+ const result=await command('exportImage',{width:choice==='antibody'?1400:1800,height:choice==='antibody'?1050:1500,format:'png',background:'white',path:'review/'+name+'-'+Date.now()+'.png'});
  images.push({name,path:result.path});console.log(name,result.path);
 }
 const sites=rs=>rs.map(r=>({authAsymId:r.chain,authSeqId:r.residue,insCode:r.insCode||''}));
@@ -46,15 +47,13 @@ if(choice==='antibody'){
  await writeFile(join(root,'review','antibody-render.json'),JSON.stringify({images,field},null,2));
 }else{
  const r=meta.ribosome,context=await load(r.files.fullContext||r.files.context);
- await command('setDisplay',{structureId:context,representations:['cartoon'],color:'uniform',colorValue:'#a8b6c8',opacity:.07,quality:'low',sizeFactor:.35});
+ await command('setDisplay',{structureId:context,representations:['cartoon'],color:'uniform',colorValue:'#a8b6c8',opacity:.10,quality:'low'});
  for(const [k,c]of [['erf1','#df756d'],['pTrna','#e4b840'],['eTrna','#48b5ad'],['mrna','#9a86bd']]){
-  const sid=await load(r.files[k]);await command('setDisplay',{structureId:sid,representations:['cartoon'],color:'uniform',colorValue:c,quality:'low',sizeFactor:.4});
+  const sid=await load(r.files[k]);await command('setDisplay',{structureId:sid,representations:['cartoon'],color:'uniform',colorValue:c,quality:'low'});
  }
- const p=r.centers.pTrna,e=r.centers.eTrna,a=r.centers.erf1,across=norm(diff(e,a)),vertical=norm(diff(a,p)),normal=norm(cross(across,vertical)),up=mul(norm(cross(normal,across)),-1),center=mul(sum(p,mul(sum(e,a),.5)),.5);
- await view('3jah-termination-sites',center,normal,up,80);
- await command('setDisplay',{structureId:context,opacity:.10});
- await view('3jah-global-context',r.centers.ribosome,normal,up,210);
- await command('setDisplay',{structureId:context,opacity:.07});
- await view('3jah-factor-trna-detail',center,normal,up,62);
+ const pose=JSON.parse(await readFile(new URL('./3jah-camera.json',import.meta.url),'utf8'));
+ await view('3jah-termination-sites',pose.sites.target,pose.direction,pose.up,pose.sites.radius);
+ await view('3jah-global-context',pose.global.target,pose.direction,pose.up,pose.global.radius);
+ await view('3jah-factor-trna-detail',pose.detail.target,pose.direction,pose.up,pose.detail.radius);
  await writeFile(join(root,'review','ribosome-render.json'),JSON.stringify({images,chains:r.chains},null,2));
 }

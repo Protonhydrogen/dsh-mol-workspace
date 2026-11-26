@@ -50,7 +50,7 @@ node examples/render-reviewed.mjs /external/example-data ribosome
 
 These commands reset the isolated harness scene. They use the official coordinates, recorded chain identities and computed contact geometry. The loopback endpoint defaults to port 43140; DSH_MOL_API can override it. The scripts do not connect to a different DSH conversation. For direct DSH use, paste the prompts in DSH_PROMPTS.md.
 
-The ribosome camera is rotated 180 degrees in the image plane so the colored factors appear A/P/E from left to right. Full context remains loaded; opacity and framing differ between the global overview and close-up.
+The final ribosome camera uses the user-approved angle in `3jah-camera.json`: E-site tRNA on the left, P-site tRNA in the middle and A-site eRF1 on the right. The file preserves portable camera axes, target/radius and the captured global Mol* snapshot. Full context remains loaded at opacity 0.10 in both global and close views; only the framing changes.
 
 For local MD benchmarking, provide your own matching files:
 

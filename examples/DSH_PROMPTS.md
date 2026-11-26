@@ -26,9 +26,9 @@ Paste into DSH after preparing the example files, replacing EXAMPLE_DATA with th
 
 > Use Mol* Viewer and EXAMPLE_DATA/analysis.json to render the complete 3JAH termination complex. Load fullContext and the separately extracted eRF1, P-tRNA, E-tRNA and mRNA files in their original coordinate frame. The combined files should cover all 226454 deposited atoms without duplication. Do not remove the other ribosomal proteins, RNA, ABCE1 or nascent chain to make the picture simpler.
 >
-> Use a very pale translucent cartoon for the full background, muted coral for eRF1 author chain ii at the A site, gold for P-site Val-tRNA author chain 2, teal for E-site Lys-tRNA author chain 3, and purple for mRNA author chain hh. This deposited eRF1 is an inactive AAQ mutant; do not call it wild type or invent an A-site tRNA.
+> Use a gray cartoon at opacity 0.10 for the full background, muted coral for eRF1 author chain ii at the A site, gold for P-site Val-tRNA author chain 2, teal for E-site Lys-tRNA author chain 3, and purple for mRNA author chain hh. This deposited eRF1 is an inactive AAQ mutant; do not call it wild type or invent an A-site tRNA.
 >
-> Export a complete ribosome overview plus an A/P/E close-up retaining translucent global context. Orient the close-up so the factors appear A/eRF1 on the left, P-tRNA in the middle, E-tRNA on the right, with mRNA below. Keep the background light enough that it does not obscure the colored molecules. Use the official Mol* clipping parameters and keep overview clipping disabled. Export viewer-only PNGs and evidence JSON, plus a portable recipe and legend.
+> Export a complete ribosome overview plus an A/P/E close-up retaining translucent global context. Read examples/3jah-camera.json from the plugin repository and use its camera mode=view parameters. The approved angle has E-tRNA on the left, P-tRNA in the middle and A/eRF1 on the right, with mRNA below. Keep this orientation in both global and close views. Keep the background light enough that it does not obscure the colored molecules. Use the official Mol* clipping parameters and keep overview clipping disabled. Export viewer-only PNGs and evidence JSON, plus a portable recipe and legend.
 
 ## Local MD playback
 
