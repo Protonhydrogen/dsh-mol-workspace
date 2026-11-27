@@ -76,15 +76,17 @@ The antigen carries a full, softly colored molecular surface. This example uses 
 
 ## MD: one contact in context
 
-A 60-frame MD viewing subset highlights two complete residues and tracks one atom-to-atom distance. The nearby environment remains visible in translucent gray, making the motion easy to follow without a competing contact network.
+The two static frames highlight complete residues and track one atom-to-atom distance. The nearby environment remains visible in translucent gray. The workflow GIF below uses the newer group_01 simulation.
 
 | Frame 1 · 4.89 Å | Frame 34 · 3.79 Å |
 |---|---|
 | ![MD contact at frame 1](verification/md-contact-frame-1.png) | ![MD contact at frame 34](verification/md-contact-frame-34.png) |
 
-[Watch MD playback (WebM)](https://github.com/Protonhydrogen/dsh-mol-workspace/releases/download/v0.6.0-rc.1/md-single-contact.webm) · [Download video](verification/md-single-contact.webm)
+![Natural-language request loading and playing group MD in DSH](verification/dsh-md-workflow.gif)
 
-The images and video show sampled simulation coordinates; the dashed annotation is a geometric distance. Only these viewer exports are shared; the source topology, trajectory and path-bearing evidence remain private.
+Actual native DSH recording: a natural-language request loads the prepared group_01 trajectory and starts playback. Waiting is accelerated; the final playback segment keeps its recorded speed and covers a complete loop. This 150 ps run is displayed as 150 uniformly sampled frames. Across all source frames, NZ–O4 close-contact occupancy is 98.40%; directional hydrogen-bond occupancy is 32.47% (distance ≤3.5 Å and best D–H–A angle ≥135°).
+
+The dashed annotation measures geometric distance. Only the rendered media are shared; source topology, trajectory and path-bearing evidence remain private.
 
 
 ## Requirements

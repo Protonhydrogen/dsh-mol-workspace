@@ -28,15 +28,17 @@
 
 ## MD：在环境中观察单一关键互作
 
-这个 60 帧 MD 观察子集突出两枚完整残基，只跟踪一条原子间距离。周围结构保留为半透明灰色，便于观察运动，避免多条接触线争夺注意力。
+两张静态图突出完整残基，只跟踪一条原子间距离，并保留半透明灰色环境。下方的流程 GIF 使用较新的 group_01 模拟。
 
 | 第 1 帧 · 4.89 Å | 第 34 帧 · 3.79 Å |
 |---|---|
 | ![第 1 帧的 MD 接触](verification/md-contact-frame-1.png) | ![第 34 帧的 MD 接触](verification/md-contact-frame-34.png) |
 
-[观看 MD 播放视频（WebM）](https://github.com/Protonhydrogen/dsh-mol-workspace/releases/download/v0.6.0-rc.1/md-single-contact.webm) · [下载视频](verification/md-single-contact.webm)
+![自然语言请求驱动 DSH 加载并播放 group MD](verification/dsh-md-workflow.gif)
 
-图片和视频使用真实模拟的采样坐标，虚线标注几何距离。本次只公开这些查看器导出媒体；原始拓扑、轨迹和包含本地路径的证据文件仍保留在本地。
+真实 DSH 界面录制：发送自然语言请求后，DSH 加载准备好的 group_01 轨迹并开始播放。等待时间经过加速，最后的实播片段保留录制速度并覆盖完整一轮。该 150 ps 模拟均匀取样为 150 个展示帧；全部原始帧的 NZ–O4 近接触占有率为 98.40%，方向性氢键占有率为 32.47%（距离 ≤3.5 Å，最佳 D–H–A 角 ≥135°）。
+
+虚线标注几何距离。本次只公开渲染后的媒体；原始拓扑、轨迹和包含本地路径的证据文件仍保留在本地。
 
 ## 安装
 
