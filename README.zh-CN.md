@@ -8,10 +8,6 @@
 
 基于 [Mol*](https://github.com/molstar/molstar) 的 DeepSeek Harness 右侧栏原生 3D 分子查看器。侧栏和 Agent 共用同一个 Molecular Context Service：你用鼠标做的选区，就是 Agent 操作的对象；Agent 发出的命令，落回你正在看的那块画布。
 
-![PD-L1 与抗体识别界面](verification/pdl1-recognition.png)
-
-[PD-L1 / atezolizumab Fab（PDB 5X8L）](https://www.rcsb.org/structure/5X8L)。蓝色为抗原，紫色和金色为抗体重链与轻链，互作界面以球棍突出。新版包含柔和全抗原静电势预览和完整核糖体背景示例。
-
 ## 能做什么
 
 载入本地 PDB/mmCIF 或四字符 PDB ID，不离开对话就能在侧栏里查看结构：选中残基、链或单个原子，聚焦结合位点，测量真实几何量，导出成图，或把当前选区作为引用交给 Agent。
@@ -125,6 +121,10 @@ verification/        验收说明与渲染截图
 [MIT](LICENSE)。基于 [Mol*](https://github.com/molstar/molstar)（MIT）、[zod](https://github.com/colinhacks/zod)（MIT）与 [React](https://react.dev)（MIT）。
 
 ## 新版示例与轨迹
+
+![PD-L1 与抗体识别界面](verification/pdl1-recognition.png)
+
+[PD-L1 / atezolizumab Fab（PDB 5X8L）](https://www.rcsb.org/structure/5X8L)。蓝色为抗原，紫色和金色为抗体重链与轻链，互作界面以球棍突出。新版包含柔和全抗原静电势预览和完整核糖体背景示例。
 
 - [PD-L1/抗体和完整核糖体示例](examples/README.md)：官方坐标、界面接触、柔和的完整抗原静电势预览、保留灰色环境的 A/P/E 位点。
 - [可直接发送给 DSH 的复现提示词](examples/DSH_PROMPTS.md)。

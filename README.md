@@ -11,10 +11,6 @@ A native 3D molecular viewer for the [DeepSeek Harness](https://github.com/deeps
 
 A real DSH conversation styles the loaded 3JAH ribosome with a natural-language request: 60S in soft blue, 40S in pale peach, and highlighted eRF1/tRNAs. The workspace breadcrumb is hidden for privacy. No camera coordinates are supplied in the visible request.
 
-![PD-L1 recognition by atezolizumab](verification/pdl1-recognition.png)
-
-[PD-L1 / atezolizumab Fab (PDB 5X8L)](https://www.rcsb.org/structure/5X8L): antigen in steel blue, heavy chain in plum, light chain in gold, and the measured interface as sticks.
-
 ## What it does
 
 Load a local PDB or mmCIF file, or a four-character PDB ID, and inspect it in the sidebar without leaving the conversation. Select residues, chains, or single atoms; focus on a binding site; measure real geometry; take a publication-ready image; or hand the current selection to the Agent as a reference in your next message.
@@ -22,6 +18,10 @@ Load a local PDB or mmCIF file, or a four-character PDB ID, and inspect it in th
 The plugin is deliberately honest about what it does not know: contacts shown around a focused residue are geometry-inferred proximity, not interaction energies, and no figure it produces is an experimental conclusion.
 
 ## Reproducible examples
+
+![PD-L1 recognition by atezolizumab](verification/pdl1-recognition.png)
+
+[PD-L1 / atezolizumab Fab (PDB 5X8L)](https://www.rcsb.org/structure/5X8L): antigen in steel blue, heavy chain in plum, light chain in gold, and the measured interface as sticks.
 
 See [PD-L1 / antibody and full-ribosome preparation](examples/README.md), [DSH prompts](examples/DSH_PROMPTS.md), and [MD trajectory import](docs/MD_TRAJECTORIES.md). The scientific manifests and viewer-only PNGs contain no desktop tasks or local paths. Local research trajectories are excluded from the public package.
 
