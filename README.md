@@ -84,7 +84,7 @@ The two static frames highlight complete residues and track one atom-to-atom dis
 
 ![Natural-language request loading and playing group MD in DSH](verification/dsh-md-workflow.gif)
 
-Actual native DSH recording: a natural-language request loads the prepared group_01 trajectory and starts playback. Waiting is condensed, and this edited GIF now runs continuously at 5× its previous speed (about 4.7 seconds per loop). The MD segment retains a complete trajectory pass. This 150 ps run is displayed as 150 uniformly sampled frames. Across all source frames, NZ–O4 close-contact occupancy is 98.40%; directional hydrogen-bond occupancy is 32.47% (distance ≤3.5 Å and best D–H–A angle ≥135°).
+Continuous native DSH recording of the visible execution: request, file checks, topology loading, trajectory attachment, styling, measurement, framing, and playback. The full sequence is shown at 5× elapsed time (about 27 seconds per loop), with progress notes and step results retained and no cuts between execution steps. This 150 ps run is displayed as 150 uniformly sampled frames. Across all source frames, NZ–O4 close-contact occupancy is 98.40%; directional hydrogen-bond occupancy is 32.47% (distance ≤3.5 Å and best D–H–A angle ≥135°).
 
 The dashed annotation measures geometric distance. Only the rendered media are shared; source topology, trajectory and path-bearing evidence remain private.
 
