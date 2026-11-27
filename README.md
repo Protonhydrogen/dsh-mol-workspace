@@ -76,6 +76,8 @@ The antigen carries a full, softly colored molecular surface. This example uses 
 
 ## MD: one contact in context
 
+**MD provenance and responsibilities.** A professional molecular dynamics engine generates the trajectory using a force field and numerical time integration; this demo uses Q6/Qdyn simulation output. Our research setup connects **VMD through MCP** for externally controlled structure/trajectory inspection and preparation. In this recorded example, a separate Python export script performed the fixed-neighborhood extraction and uniform frame sampling. **DSH and Mol* load, style, measure, and play the prepared coordinates; they do not generate the dynamics or run VMD during this recording.** VMD MCP is configured separately in the Agent host, not bundled with this viewer. See [the MD workflow](docs/MD_TRAJECTORIES.md#simulation-vmd-mcp-and-display).
+
 The two static frames highlight complete residues and track one atom-to-atom distance. The nearby environment remains visible in translucent gray. The workflow GIF below uses the newer group_01 simulation.
 
 | Frame 1 · 4.89 Å | Frame 34 · 3.79 Å |
@@ -84,7 +86,7 @@ The two static frames highlight complete residues and track one atom-to-atom dis
 
 ![Natural-language request loading and playing group MD in DSH](verification/dsh-md-workflow.gif)
 
-Continuous native DSH recording of the visible execution: request, file checks, topology loading, trajectory attachment, styling, measurement, framing, and playback. The full sequence is shown at 5× elapsed time (about 27 seconds per loop), with progress notes and step results retained and no cuts between execution steps. This 150 ps run is displayed as 150 uniformly sampled frames. Across all source frames, NZ–O4 close-contact occupancy is 98.40%; directional hydrogen-bond occupancy is 32.47% (distance ≤3.5 Å and best D–H–A angle ≥135°).
+Continuous native DSH recording of the visible execution: request, file checks, topology loading, trajectory attachment, styling, measurement, framing, and playback. The full sequence is shown at 10× elapsed time (about 14 seconds per loop), with progress notes and step results retained and no cuts between execution steps. This 150 ps run is displayed as 150 uniformly sampled frames. Across all source frames, NZ–O4 close-contact occupancy is 98.40%; directional hydrogen-bond occupancy is 32.47% (distance ≤3.5 Å and best D–H–A angle ≥135°).
 
 The dashed annotation measures geometric distance. Only the rendered media are shared; source topology, trajectory and path-bearing evidence remain private.
 

@@ -4,6 +4,22 @@ Load a PDB or mmCIF topology, select it in the sidebar, then attach its DCD or X
 
 The viewer uses Mol* native coordinate parsers and model trajectories. Coordinates remain in their original frames; import does not run a simulation, interpolate frames, align the trajectory, remove periodic jumps, or infer missing atoms. XTC coordinates are converted from nanometers to Angstroms by Mol*. Frame numbers are zero-based internally and can be shown as one-based labels in the sidebar. Playback FPS controls viewing speed and is independent of the simulation time step.
 
+## Simulation, VMD MCP, and display
+
+These are separate stages with separate responsibilities:
+
+| Stage | Responsible component | Output |
+|---|---|---|
+| Physical simulation | An external MD engine; Q6/Qdyn in the recorded example | Coordinates generated using the simulation's force field, integrator, and configured physical conditions |
+| Inspection and preparation | VMD exposed to the Agent through a separately configured MCP server, or a documented external export script | Checked atom identities/order, matching viewing topology and trajectory, optional periodic-boundary correction and uniform frame sampling |
+| Interactive display | DSH Agent tools and this Mol* viewer | Loading, representations, colors, measurements, camera control, and playback of existing coordinates |
+
+Our research environment has VMD connected through MCP. The MCP bridge lets an Agent control VMD tools and Tcl operations without driving its GUI. It is an external integration configured in the Agent host; installing this plugin does not install VMD, enable a VMD MCP server, or make one available automatically in DSH. An Agent should discover the configured tools and verify the connection before reporting that VMD was used.
+
+For the public group_01 workflow GIF, Q6/Qdyn produced the source simulation. A separate Python export script selected a fixed 7 Å initial neighborhood, retained complete heavy-atom residues and the donor hydrogens, and exported 150 uniformly sampled coordinate frames spanning 1–150 ps. It did not change coordinates or filter frames by hydrogen-bond formation. DSH then loaded the prepared topology and DCD, styled the key residues and gray environment, measured NZ–O4 distance, and started playback. This particular recording contains no VMD invocation; earlier VMD MCP validation belongs to the broader research workflow, not to these displayed steps.
+
+The GIF is a continuous 10× recording of the visible Agent execution, rather than a simulation-time calibration. The original run has 98.40% NZ–O4 close-contact occupancy and 32.47% directional hydrogen-bond occupancy across all source frames (distance ≤3.5 Å and best D–H–A angle ≥135°). A displayed distance line alone does not establish a hydrogen bond.
+
 ## Bounds and preparation
 
 The sidebar accepts DCD/XTC files up to 64 MiB, 100,000 atoms, 1,000 frames, and 5,000,000 atom-frames. All limits apply together. The last limit bounds decoded xyz coordinate storage to about 60 MB; total process memory also includes the input file, models, and rendering data. Headers and record boundaries are checked before native coordinate allocation. Every decoded frame must match the topology count and contain finite coordinates.
