@@ -138,6 +138,21 @@ The plugin is installed as a local package in a DSH profile. A profile lives und
 
 The sidebar state is stored per session under `~/.dsh/storages/molecular-workspace`, or wherever `DSH_MOLECULAR_STATE_DIR` points.
 
+
+## Cross-platform installation
+
+Keep the package name, dependency key and bundle ID as **dsh-mol-workspace**. To configure an existing DSH profile without editing its package.json by hand, use:
+
+```sh
+node scripts/install-profile.mjs --profile-dir "PATH_TO_DSH_PROFILE"
+# inspect the preview before applying it
+node scripts/install-profile.mjs --profile-dir "PATH_TO_DSH_PROFILE" --write
+```
+
+The command previews by default, preserves other plugins and bundles, is idempotent and does not change DSH core or install dependencies. Use your existing package manager to install profile dependencies after reviewing the change. See [macOS compatibility and acceptance](docs/MACOS.md) for platform scope and the real-Mac validation checklist.
+
+The configuration tool is covered by `npm run test:install-profile`; running its test file directly avoids a child-process requirement in restricted sandboxes.
+
 ## Build from source
 
 The shipped `client.js` is a single-file bundle with Mol* compiled in, so you only need this if you change `src/`.

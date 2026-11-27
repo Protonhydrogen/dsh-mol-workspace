@@ -3,6 +3,13 @@
 Notable changes to this plugin. The project is pre-1.0: minor versions may
 change behaviour, and the Agent tool surface is the most likely thing to move.
 
+## 0.6.0-rc.2 (portable-install candidate)
+
+- Add the dsh-mol-workspace profile installer. It previews by default, preserves existing bundles and dependencies, creates a backup before changing a profile, and is idempotent.
+- Add POSIX and Windows path tests and a single-process test command for restricted sandboxes; no DSH core changes.
+- Add macOS installation guidance and an explicit real-Mac acceptance checklist. macOS native acceptance remains pending a real environment.
+- Source and submission provenance now separates public molecular examples from the private, personal MD research workflow.
+
 ## 0.6.0-rc.1 (unpublished candidate)
 
 - Add a separately registered molecular_trajectory tool for matching DCD/XTC coordinates, bounded allocation, stable molecular identity across frames and serialized playback.

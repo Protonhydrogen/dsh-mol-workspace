@@ -1,6 +1,6 @@
 {
   "name": "dsh-mol-workspace",
-  "version": "0.6.0-rc.1",
+  "version": "0.6.0-rc.2",
   "private": true,
   "description": "Native Molecular Workspace: Mol* 3D structure viewer integrated into the DSH right sidebar, with a shared Molecular Context Service for UI actions and Agent tools.",
   "repository": {
@@ -41,10 +41,12 @@
     "LICENSE",
     "THIRD_PARTY_NOTICES.txt",
     "docs",
-    "examples"
+    "examples",
+    "scripts"
   ],
   "scripts": {
     "build": "node build.mjs",
+    "test:install-profile": "node tests/install-profile.test.mjs",
     "test": "node --no-warnings --experimental-loader ./tests/resolve-loader.mjs --test tests/state.test.mjs tests/engine.test.mjs tests/geometry.test.mjs tests/host.test.mjs tests/references.test.mjs tests/interactions.test.mjs tests/focus-representation.test.mjs tests/schema.test.mjs tests/display.test.mjs tests/electrostatics.test.mjs tests/layer-surface.test.mjs tests/video-codecs.test.mjs tests/view-settings.test.mjs tests/viewer-wake.test.mjs tests/surface-potential.test.mjs tests/camera-view.test.mjs tests/md-trajectory.test.mjs tests/md-integration.test.mjs tests/md-measurements.test.mjs",
     "test:live": "node --no-warnings --experimental-loader ./tests/resolve-loader.mjs --test tests/live.test.mjs tests/live-new.test.mjs tests/live-v030.test.mjs",
     "test:surface": "node --no-warnings --experimental-loader ./tests/resolve-loader.mjs --test tests/live-surface.test.mjs"
