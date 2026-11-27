@@ -78,11 +78,7 @@ The antigen carries a full, softly colored molecular surface. This example uses 
 
 **MD provenance and responsibilities.** Dedicated molecular dynamics software, such as GROMACS, AMBER, or NAMD, generates trajectories using a force field and numerical time integration. This demo displays an externally computed trajectory. Our research setup connects **VMD through MCP** for externally controlled structure/trajectory inspection and preparation. In this recorded example, a separate Python export script performed the fixed-neighborhood extraction and uniform frame sampling. **DSH and Mol* load, style, measure, and play the prepared coordinates; they do not generate the dynamics or run VMD during this recording.** VMD MCP is configured separately in the Agent host, not bundled with this viewer. See [the MD workflow](docs/MD_TRAJECTORIES.md#simulation-vmd-mcp-and-display).
 
-The two static frames highlight complete residues and track one atom-to-atom distance. The nearby environment remains visible in translucent gray. The workflow GIF below uses the newer group_01 simulation.
-
-| Frame 1 · 4.89 Å | Frame 34 · 3.79 Å |
-|---|---|
-| ![MD contact at frame 1](verification/md-contact-frame-1.png) | ![MD contact at frame 34](verification/md-contact-frame-34.png) |
+The workflow GIF below highlights complete residues, tracks one atom-to-atom distance, and keeps the nearby environment visible in translucent gray. It uses the group_01 simulation.
 
 ![Natural-language request loading and playing group MD in DSH](verification/dsh-md-workflow.gif)
 

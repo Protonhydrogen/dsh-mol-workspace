@@ -30,11 +30,7 @@
 
 **MD 的来源与分工。** 专业分子动力学软件（例如 GROMACS、AMBER、NAMD）依据力场并通过数值时间积分产生轨迹。本例展示外部模拟得到的轨迹。我们的研究环境将 **VMD 通过 MCP 接入 Agent**，用于外部控制的结构/轨迹检查与预处理。本次录屏使用的固定邻域裁剪和均匀抽帧，实际由独立 Python 导出脚本完成。**DSH 与 Mol* 负责加载、着色、测距和播放已有坐标，不负责计算分子动力学；本段录屏也没有调用 VMD。** VMD MCP 需在 Agent 宿主中单独配置，并非查看器内置组件。详见 [MD 工作流程](docs/MD_TRAJECTORIES.md#simulation-vmd-mcp-and-display)。
 
-两张静态图突出完整残基，只跟踪一条原子间距离，并保留半透明灰色环境。下方的流程 GIF 使用较新的 group_01 模拟。
-
-| 第 1 帧 · 4.89 Å | 第 34 帧 · 3.79 Å |
-|---|---|
-| ![第 1 帧的 MD 接触](verification/md-contact-frame-1.png) | ![第 34 帧的 MD 接触](verification/md-contact-frame-34.png) |
+下方的流程 GIF 使用 group_01 模拟，突出完整残基，只跟踪一条原子间距离，并保留半透明灰色环境。
 
 ![自然语言请求驱动 DSH 加载并播放 group MD](verification/dsh-md-workflow.gif)
 
