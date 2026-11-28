@@ -7,8 +7,8 @@
 | Runtime code | Verified in DSH Desktop 0.2.2-rc.5 with live Mol* rendering | No OS-specific branch found; browser/Mol* renderer is shared with Windows |
 | Host persistence | Verified from the user profile storage | Uses Node os.homedir() and path.join(); expected portable |
 | Build/test resolution | Supports repository, MOLSTAR_ROOT and DSH_ROOT | Same env-variable contract, POSIX paths supported |
-| Profile installer | Unit tested on Windows with an explicit macOS path expectation | Pending acceptance on a real Mac |
-| Native acceptance | Passed, including closed-sidebar Agent wake-up, real DCD playback and export | **Not yet claimed** until a real macOS DSH run completes |
+| Profile installer | Unit tested on Windows with an explicit macOS path expectation | Run on macOS 26.4 (arm64) on 2026-11-28: install, dependency check, backup and idempotent re-run all verified |
+| Native acceptance | Passed, including closed-sidebar Agent wake-up, real DCD playback and export | **Partly claimed**: install, loading (RCSB ID and local mmCIF), Agent load/focus/style/measure/surface/highlight, PNG export with evidence JSON and independent distance agreement verified on macOS 26.4; interaction, DCD playback and video export remain open |
 
 The plugin is not shipped as a Mac-specific fork. It uses standard Node.js ESM, path.join/homedir for host-side storage, and the same browser-side Mol* renderer on supported operating systems. No DSH core file is modified.
 
@@ -33,11 +33,20 @@ If the preview shows the expected dependency and bundle entry, apply it:
 
 ```sh
 node scripts/install-profile.mjs --profile-dir "$HOME/.dsh/profiles/desktop" --write
+```
+
+Install this clone's own runtime dependencies **before** the profile ones:
+
+```sh
+cd "$HOME/Research/dsh-mol-workspace"
+npm install --omit=dev --legacy-peer-deps
 cd "$HOME/.dsh/profiles/desktop"
 pnpm install
 ```
 
-The installer is idempotent, preserves existing dependencies and dsh.profile settings, creates a one-time backup before rewriting an existing profile package.json, and stops before replacing malformed JSON. It does not install dependencies, restart DSH, or modify DSH core.
+A `link:` dependency is only a symlink, and DSH imports the host half through this directory's real path, so the profile's `node_modules` cannot satisfy the dependencies it imports (`zod`). Skipping the first command leaves the host row failing to import: DSH logs `failed to import: Cannot find package 'zod'`, the `molecular` remote namespace never mounts, and the right sidebar shows no **Mol* Viewer** panel without any UI error. `--legacy-peer-deps` keeps the `@deepseek-ai/*` peers, which DSH provides, out of the clone.
+
+The installer is idempotent, preserves existing dependencies and dsh.profile settings, creates a one-time backup before rewriting an existing profile package.json, and stops before replacing malformed JSON. It does not install dependencies, restart DSH, or modify DSH core. It does resolve this clone's runtime dependencies and prints the exact install command (exiting non-zero after `--write`) when one is missing.
 
 Finally perform a **full DSH restart**, open the right sidebar and choose **Mol* Viewer**.
 

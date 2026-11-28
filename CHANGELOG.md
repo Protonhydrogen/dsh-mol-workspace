@@ -3,6 +3,13 @@
 Notable changes to this plugin. The project is pre-1.0: minor versions may
 change behaviour, and the Agent tool surface is the most likely thing to move.
 
+## Unreleased
+
+- Install the clone's own runtime dependencies before the profile's: a `link:` install resolves through the clone's real path, so a missing `zod` made the host half fail to import and the sidebar show no panel, without any UI error.
+- The profile installer now resolves the clone's declared runtime dependencies, prints the exact install command when one is missing, reports it in its JSON output and in `next`, and exits non-zero after `--write` in that case.
+- Document the dependency step in README, README.zh-CN and the macOS guide.
+- This documents the first real-Mac install; native acceptance itself stays pending the remaining checklist items.
+
 ## 0.6.0-rc.2 (portable-install candidate)
 
 - Add the dsh-mol-workspace profile installer. It previews by default, preserves existing bundles and dependencies, creates a backup before changing a profile, and is idempotent.
