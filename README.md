@@ -125,7 +125,16 @@ The plugin is installed as a local package in a DSH profile. A profile lives und
 
    The dependency key, the bundle entry, and the `name` in this repository's `package.json` must all stay identical: `cordis.patch.yml` inserts that id and the client module id inside `client.js` matches it.
 
-3. Install the profile dependencies and restart DeepSeek Harness:
+3. Install this clone's own runtime dependencies:
+
+   ```bash
+   cd /absolute/path/to/dsh-mol-workspace
+   npm install --omit=dev --legacy-peer-deps
+   ```
+
+   A `link:` dependency is a symlink, and DSH imports the plugin's host half through the real path of this directory, so the profile's `node_modules` cannot satisfy the dependencies that half imports (`zod`). Without this step the host half fails to import and the sidebar silently shows no panel. `--legacy-peer-deps` keeps the `@deepseek-ai/*` peers, which DSH itself provides, out of this clone.
+
+4. Install the profile dependencies and restart DeepSeek Harness:
 
    ```bash
    cd ~/.dsh/profiles/<name>
@@ -134,7 +143,7 @@ The plugin is installed as a local package in a DSH profile. A profile lives und
 
    The host half is ESM and is cached, so a full restart of DSH is required for changes to take effect.
 
-4. Open the right sidebar and pick **Mol* Viewer**.
+5. Open the right sidebar and pick **Mol* Viewer**.
 
 The sidebar state is stored per session under `~/.dsh/storages/molecular-workspace`, or wherever `DSH_MOLECULAR_STATE_DIR` points.
 
@@ -149,7 +158,7 @@ node scripts/install-profile.mjs --profile-dir "PATH_TO_DSH_PROFILE"
 node scripts/install-profile.mjs --profile-dir "PATH_TO_DSH_PROFILE" --write
 ```
 
-The command previews by default, preserves other plugins and bundles, is idempotent and does not change DSH core or install dependencies. Use your existing package manager to install profile dependencies after reviewing the change. See [macOS compatibility and acceptance](docs/MACOS.md) for platform scope and the real-Mac validation checklist.
+The command previews by default, preserves other plugins and bundles, is idempotent and does not change DSH core or install dependencies. It also reports any runtime dependency this clone cannot resolve, exits non-zero after `--write` in that case, and prints the exact install command. Use your existing package manager to install profile dependencies after reviewing the change. See [macOS compatibility and acceptance](docs/MACOS.md) for platform scope and the real-Mac validation checklist.
 
 The configuration tool is covered by `npm run test:install-profile`; running its test file directly avoids a child-process requirement in restricted sandboxes.
 

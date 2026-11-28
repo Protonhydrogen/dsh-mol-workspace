@@ -54,8 +54,17 @@
 
    依赖键名、bundle 条目与本仓库 `package.json` 里的 `name` 三者必须一致：`cordis.patch.yml` 插入的就是这个 id，`client.js` 里的模块 id 也与之一致。
 
-3. `cd ~/.dsh/profiles/<名称> && pnpm install`，然后**完整重启** DSH（宿主端是 ESM，有缓存）。
-4. 打开右侧栏，选择 **Mol* Viewer**。
+3. 安装本仓库自身的运行时依赖：
+
+   ```bash
+   cd /仓库的绝对路径/dsh-mol-workspace
+   npm install --omit=dev --legacy-peer-deps
+   ```
+
+   `link:` 依赖只是软链，而 DSH 是沿着本目录的**真实路径**加载宿主端的，所以 profile 的 `node_modules` 满足不了它 import 的依赖（`zod`）。少了这一步，宿主端会 import 失败，侧栏静默地什么都不显示。`--legacy-peer-deps` 用于避免把 DSH 已经提供的 `@deepseek-ai/*` peer 依赖装进本仓库。
+
+4. `cd ~/.dsh/profiles/<名称> && pnpm install`，然后**完整重启** DSH（宿主端是 ESM，有缓存）。
+5. 打开右侧栏，选择 **Mol* Viewer**。
 
 会话状态保存在 `~/.dsh/storages/molecular-workspace`，可用 `DSH_MOLECULAR_STATE_DIR` 改位置。
 
